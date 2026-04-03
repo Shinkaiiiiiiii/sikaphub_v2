@@ -7,6 +7,9 @@ ini_set('display_errors', 1); // Change to 0 in production
 // 2. Define Absolute Paths
 define('BASE_PATH', dirname(__DIR__) . '/');
 
+// Load Composer Dependencies
+require_once BASE_PATH . 'vendor/autoload.php';
+
 // 3. Simple .env Loader
 function loadEnv($path)
 {
@@ -26,6 +29,8 @@ loadEnv(BASE_PATH . '.env');
 require_once BASE_PATH . 'config/Database.php';
 require_once BASE_PATH . 'app/core/Router.php';
 require_once BASE_PATH . 'app/controllers/AuthController.php';
+require_once BASE_PATH . 'app/controllers/ProfileController.php';
+require_once BASE_PATH . 'app/controllers/AdminController.php';
 require_once BASE_PATH . 'app/services/AIEngineService.php';
 
 // 5. Initialize Router
@@ -51,6 +56,14 @@ $router->post('/login', ['AuthController', 'login']);
 
 // Logout Route
 $router->get('/logout', ['AuthController', 'logout']);
+
+// Profile Routes
+$router->get('/build-profile', ['ProfileController', 'buildProfile']);
+$router->post('/build-profile', ['ProfileController', 'buildProfile']);
+
+// Admin Routes
+$router->get('/admin/dashboard', ['AdminController', 'dashboard']);
+$router->get('/admin/export', ['AdminController', 'exportPdf']);
 
 // AI Engine Test Route
 $router->get('/test-ai', function () {
