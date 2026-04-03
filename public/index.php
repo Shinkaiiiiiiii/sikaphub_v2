@@ -26,6 +26,7 @@ loadEnv(BASE_PATH . '.env');
 require_once BASE_PATH . 'config/Database.php';
 require_once BASE_PATH . 'app/core/Router.php';
 require_once BASE_PATH . 'app/controllers/AuthController.php';
+require_once BASE_PATH . 'app/services/AIEngineService.php';
 
 // 5. Initialize Router
 $router = new Router();
@@ -50,6 +51,24 @@ $router->post('/login', ['AuthController', 'login']);
 
 // Logout Route
 $router->get('/logout', ['AuthController', 'logout']);
+
+// AI Engine Test Route
+$router->get('/test-ai', function () {
+    echo "<h2>Testing AI Engine S2S Connection...</h2>";
+
+    $aiService = new AIEngineService();
+
+    // Hardcode dummy IDs for testing purposes
+    // Ensure these IDs actually exist in your database or Python will return 0.0
+    $jobId = 1;
+    $jobseekerId = 1;
+
+    $result = $aiService->triggerMatchComputation($jobId, $jobseekerId);
+
+    echo "<pre>";
+    print_r($result);
+    echo "</pre>";
+});
 
 // 8. Dispatch the Request
 $method = $_SERVER['REQUEST_METHOD'];
