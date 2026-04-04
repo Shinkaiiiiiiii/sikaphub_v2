@@ -1,6 +1,7 @@
 <?php
 
 require_once BASE_PATH . 'app/core/Controller.php';
+require_once BASE_PATH . 'app/helpers/AuthGuard.php';
 
 // Import Dompdf classes
 use Dompdf\Dompdf;
@@ -11,8 +12,9 @@ class AdminController extends Controller
 
     public function dashboard()
     {
-        // Enforce Strict Admin Access
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+        // Enforce Strict Admin Access securely
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin') {
             die("Access Denied: Unauthorized Clearance Level.");
         }
 
@@ -31,7 +33,9 @@ class AdminController extends Controller
 
     public function exportPdf()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+        // Enforce Strict Admin Access securely
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin') {
             die("Access Denied: Unauthorized Clearance Level.");
         }
 

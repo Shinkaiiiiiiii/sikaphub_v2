@@ -28,9 +28,11 @@ loadEnv(BASE_PATH . '.env');
 // 4. Autoload Core Classes
 require_once BASE_PATH . 'config/Database.php';
 require_once BASE_PATH . 'app/core/Router.php';
+require_once BASE_PATH . 'app/helpers/AuthGuard.php';
 require_once BASE_PATH . 'app/controllers/AuthController.php';
 require_once BASE_PATH . 'app/controllers/ProfileController.php';
 require_once BASE_PATH . 'app/controllers/AdminController.php';
+require_once BASE_PATH . 'app/controllers/OnboardingController.php';
 require_once BASE_PATH . 'app/services/AIEngineService.php';
 
 // 5. Initialize Router
@@ -56,6 +58,10 @@ $router->post('/login', ['AuthController', 'login']);
 
 // Logout Route
 $router->get('/logout', ['AuthController', 'logout']);
+
+// Onboarding Routes
+$router->get('/onboarding', ['OnboardingController', 'index']);
+$router->post('/onboarding', ['OnboardingController', 'index']);
 
 // Profile Routes
 $router->get('/build-profile', ['ProfileController', 'buildProfile']);

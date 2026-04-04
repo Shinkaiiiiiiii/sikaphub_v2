@@ -2,17 +2,15 @@
 
 require_once BASE_PATH . 'app/core/Controller.php';
 require_once BASE_PATH . 'app/services/AIEngineService.php';
+require_once BASE_PATH . 'app/helpers/AuthGuard.php';
 
 class ProfileController extends Controller
 {
 
     public function buildProfile()
     {
-        // Enforce Session Authentication
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /sikaphub_v2/public/login');
-            exit();
-        }
+        // Enforce Strict Active Profile Authentication
+        AuthGuard::requireActiveProfile();
 
         $profileModel = $this->model('Profile');
 
