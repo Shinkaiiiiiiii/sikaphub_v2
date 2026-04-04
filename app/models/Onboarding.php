@@ -54,4 +54,41 @@ class Onboarding
             return false;
         }
     }
+
+    public function createEmployerProfile($userId, $data, $businessPermitFilename)
+    {
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Insert the mandatory Employer data
+            $sqlProfile = "INSERT INTO Employers 
+                (user_id, company_name, contact_person, company_email, company_phone, street_address, barangay_id, business_permit, verified_status) 
+                VALUES (:user_id, :company_name, :contact_person, :company_email, :company_phone, :street_address, :barangay_id, :business_permit, 'Pending')";
+
+            $stmtProfile = $this->db->prepare($sqlProfile);
+            $stmtProfile->execute([
+                ':user_id' => $userId,
+                ':company_name' => $data['company_name'],
+                ':contact_person' => $data['contact_person'],
+                ':company_email' => $data['company_email'],
+                ':company_phone' => $data['company_phone'],
+                ':street_address' => $data['street_address'],
+                ':barangay_id' => $data['barangay_id'],
+                ':business_permit' => $businessPermitFilename
+            ]);
+
+            // 2. Upgrade the User's account status to 'Active'
+            $sqlStatus = "UPDATE Users SET account_status = 'Active' WHERE user_id = :user_id";
+            $stmtStatus = $this->db->prepare($sqlStatus);
+            $stmtStatus->execute([':user_id' => $userId]);
+
+            $this->db->commit();
+            return true;
+
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("Employer Onboarding Transaction Failed: " . $e->getMessage());
+            return false;
+        }
+    }
 }
