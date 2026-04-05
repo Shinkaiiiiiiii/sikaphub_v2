@@ -57,4 +57,54 @@ class JobSeekerController extends Controller
         // 5. Render the View
         $this->view('jobseeker/dashboard', ['jobs' => $scoredJobs]);
     }
+
+    public function apply()
+    {
+        // 1. Strict Security Guardrails
+        AuthGuard::requireActiveProfile();
+
+        if ($_SESSION['role'] !== 'jobseeker') {
+            die("Access Denied: Only job seekers can apply for jobs.");
+        }
+
+        // 2. Enforce POST request to prevent CSRF via URL manipulation
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            die("Method Not Allowed.");
+        }
+
+        $jobId = isset($_POST['job_id']) ? (int) $_POST['job_id'] : 0;
+        $jobseekerId = $_SESSION['user_id'];
+
+        if ($jobId === 0) {
+            die("Invalid Job ID.");
+        }
+
+        $jobSeekerModel = $this->model('JobSeeker');
+
+        // 3. Graceful Duplicate Check
+        if ($jobSeekerModel->hasAlreadyApplied($jobseekerId, $jobId)) {
+            echo "<h3>Application Failed</h3>";
+            echo "<p>You have already applied for this position. Please wait for the employer to review your profile.</p>";
+            echo "<a href='/sikaphub_v2/dashboard'>Return to Dashboard</a>";
+            return;
+        }
+
+        // 4. ZERO TRUST SECURITY: Recalculate the authoritative score server-side
+        $aiService = new AIEngineService();
+        $result = $aiService->triggerMatchComputation($jobId, $jobseekerId);
+
+        $authoritativeScore = 0.00;
+        if ($result['success']) {
+            $authoritativeScore = (float) $result['data']['weighted_skill_score'];
+        }
+
+        // 5. Execute Point-in-Time Capture
+        if ($jobSeekerModel->applyForJob($jobseekerId, $jobId, $authoritativeScore)) {
+            echo "<h3>Application Submitted Successfully!</h3>";
+            echo "<p>Your profile and a verified Match Score of <strong>" . ($authoritativeScore * 100) . "%</strong> have been locked and sent to the employer.</p>";
+            echo "<a href='/sikaphub_v2/dashboard'>Return to Dashboard</a>";
+        } else {
+            echo "A system error occurred while processing your application.";
+        }
+    }
 }

@@ -69,8 +69,9 @@ $router->post('/onboarding', ['OnboardingController', 'index']);
 $router->get('/build-profile', ['ProfileController', 'buildProfile']);
 $router->post('/build-profile', ['ProfileController', 'buildProfile']);
 
-// Job Seeker Dashboard
+// Job Seeker Dashboard & Application Routes
 $router->get('/dashboard', ['JobSeekerController', 'dashboard']);
+$router->post('/apply', ['JobSeekerController', 'apply']);
 
 // Job Routes
 $router->get('/post-job', ['JobController', 'create']);
