@@ -3,6 +3,9 @@
 require_once BASE_PATH . 'app/core/Controller.php';
 require_once BASE_PATH . 'app/helpers/AuthGuard.php';
 
+// 1. Import the AI Service
+require_once BASE_PATH . 'app/services/AIEngineService.php';
+
 class JobController extends Controller
 {
 
@@ -46,7 +49,35 @@ class JobController extends Controller
                 if ($newJobId) {
                     echo "<h3>Job Posted Successfully!</h3>";
                     echo "<p>Job ID: " . htmlspecialchars($newJobId) . "</p>";
-                    // Note: In Part 3, we will inject the Python AI Trigger here.
+
+                    // 2. Execute the AI Trigger Pipeline
+                    echo "<h4>Triggering AI Match Engine...</h4>";
+                    $aiService = new AIEngineService();
+                    $activeSeekers = $jobModel->getActiveJobSeekers();
+
+                    echo "<div style='background:#1e1e1e; color:#00ff00; padding:15px; border-radius:5px; font-family:monospace; margin-bottom: 20px;'>";
+                    echo "Initializing matrix calculation for Job ID: {$newJobId}...<br><br>";
+
+                    $processedCount = 0;
+                    foreach ($activeSeekers as $seeker) {
+                        $seekerId = $seeker['jobseeker_id'];
+
+                        // Fire the S2S cURL request to Python
+                        $result = $aiService->triggerMatchComputation($newJobId, $seekerId);
+
+                        if ($result['success']) {
+                            $score = $result['data']['weighted_skill_score'];
+                            // Render the live calculation output to the screen
+                            echo "Seeker ID [{$seekerId}] processed. Weighted Score: <strong>{$score}</strong><br>";
+                        } else {
+                            echo "<span style='color:red;'>Failed to process Seeker ID [{$seekerId}]: " . htmlspecialchars($result['error']) . "</span><br>";
+                        }
+                        $processedCount++;
+                    }
+                    echo "</div>";
+
+                    echo "<p>Successfully ranked <strong>{$processedCount}</strong> active candidates against this new opportunity.</p>";
+
                 } else {
                     echo "Database Error: Could not post job.";
                 }

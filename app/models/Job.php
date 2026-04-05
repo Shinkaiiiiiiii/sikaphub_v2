@@ -35,6 +35,18 @@ class Job
         return $stmt->fetchAll();
     }
 
+    // Fetch all active job seekers to feed into the AI Engine loop
+    public function getActiveJobSeekers()
+    {
+        $sql = "SELECT js.jobseeker_id 
+                FROM Job_Seekers js
+                JOIN Users u ON js.user_id = u.user_id
+                WHERE u.account_status = 'Active'";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public function createJobPosting($employerId, $jobData, $skillIds)
     {
         try {
