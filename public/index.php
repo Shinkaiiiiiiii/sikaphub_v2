@@ -78,8 +78,10 @@ $router->post('/apply', ['JobSeekerController', 'apply']);
 $router->get('/post-job', ['JobController', 'create']);
 $router->post('/post-job', ['JobController', 'create']);
 
-// Employer ATS Dashboard
+// Employer ATS Dashboard & Review Routes
 $router->get('/employer/dashboard', ['EmployerController', 'dashboard']);
+$router->get('/employer/review-candidate', ['EmployerController', 'reviewCandidate']);
+$router->post('/employer/review-candidate', ['EmployerController', 'reviewCandidate']);
 
 // Admin Routes
 $router->get('/admin/dashboard', ['AdminController', 'dashboard']);

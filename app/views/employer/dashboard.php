@@ -164,7 +164,9 @@
                                         <?php echo htmlspecialchars($applicant['application_status']); ?>
                                     </td>
                                     <td>
-                                        <button disabled>Review Profile</button>
+                                        <a href="/sikaphub_v2/employer/review-candidate?app_id=<?php echo $applicant['application_id']; ?>"
+                                            style="background: #0056b3; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em;">Review
+                                            Profile</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
