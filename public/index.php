@@ -35,6 +35,7 @@ require_once BASE_PATH . 'app/controllers/AdminController.php';
 require_once BASE_PATH . 'app/controllers/OnboardingController.php';
 require_once BASE_PATH . 'app/controllers/JobController.php';
 require_once BASE_PATH . 'app/controllers/JobSeekerController.php';
+require_once BASE_PATH . 'app/controllers/EmployerController.php';
 require_once BASE_PATH . 'app/services/AIEngineService.php';
 
 // 5. Initialize Router
@@ -76,6 +77,9 @@ $router->post('/apply', ['JobSeekerController', 'apply']);
 // Job Routes
 $router->get('/post-job', ['JobController', 'create']);
 $router->post('/post-job', ['JobController', 'create']);
+
+// Employer ATS Dashboard
+$router->get('/employer/dashboard', ['EmployerController', 'dashboard']);
 
 // Admin Routes
 $router->get('/admin/dashboard', ['AdminController', 'dashboard']);
