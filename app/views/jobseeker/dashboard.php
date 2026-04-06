@@ -119,7 +119,8 @@
                         <div class="match-circle">
                             <?php echo $job['match_percentage']; ?>%
                         </div>
-                        <form method="POST" action="/sikaphub_v2/apply">
+                        <form method="POST" action="/sikaphub_v2/apply" class="ai-trigger-form"
+                            data-loader-msg="Locking final AI Match Score & Submitting Application...">
                             <?php echo CSRF::csrfField(); ?>
 
                             <input type="hidden" name="job_id" value="<?php echo $job['job_id']; ?>">
@@ -131,6 +132,8 @@
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
+
+    <?php require BASE_PATH . 'app/views/components/loader.php'; ?>
 </body>
 
 </html>

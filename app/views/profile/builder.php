@@ -28,7 +28,9 @@
 
 <body>
     <h2>Define Your Skill Profile</h2>
-    <form method="POST" action="">
+
+    <form method="POST" action="" class="ai-trigger-form"
+        data-loader-msg="Recomputing AI Match Scores across all active jobs... Please wait.">
         <?php echo CSRF::csrfField(); ?>
 
         <div class="skill-list">
@@ -42,6 +44,8 @@
         </div>
         <button type="submit">Save Profile & Trigger AI</button>
     </form>
+
+    <?php require BASE_PATH . 'app/views/components/loader.php'; ?>
 </body>
 
 </html>

@@ -56,7 +56,8 @@
     <h2>Post a New Job Opportunity</h2>
     <p>Define your requirements. The AI engine will use these parameters to rank candidates.</p>
 
-    <form method="POST" action="">
+    <form method="POST" action="" class="ai-trigger-form"
+        data-loader-msg="Analyzing Matrix and Ranking Active Candidates... Please wait.">
         <?php echo CSRF::csrfField(); ?>
 
         <div class="form-group">
@@ -114,6 +115,8 @@
 
         <button type="submit">Publish Job</button>
     </form>
+
+    <?php require BASE_PATH . 'app/views/components/loader.php'; ?>
 </body>
 
 </html>
