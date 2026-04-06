@@ -102,9 +102,33 @@ class JobSeekerController extends Controller
         if ($jobSeekerModel->applyForJob($jobseekerId, $jobId, $authoritativeScore)) {
             echo "<h3>Application Submitted Successfully!</h3>";
             echo "<p>Your profile and a verified Match Score of <strong>" . ($authoritativeScore * 100) . "%</strong> have been locked and sent to the employer.</p>";
-            echo "<a href='/sikaphub_v2/dashboard'>Return to Dashboard</a>";
+            // Link updated to point to the new Tracker
+            echo "<a href='/sikaphub_v2/my-applications'>View Application Tracker</a>";
         } else {
             echo "A system error occurred while processing your application.";
         }
+    }
+
+    public function tracker()
+    {
+        // 1. Strict Security Guardrails
+        AuthGuard::requireActiveProfile();
+
+        if ($_SESSION['role'] !== 'jobseeker') {
+            die("Access Denied: Only job seekers can track applications.");
+        }
+
+        $jobSeekerModel = $this->model('JobSeeker');
+
+        // 2. Fetch the historical applications using the authenticated User ID
+        $applications = $jobSeekerModel->getMyApplications($_SESSION['user_id']);
+
+        // 3. Format the scores for the UI
+        foreach ($applications as &$app) {
+            $app['match_percentage'] = round((float) $app['ai_match_score'] * 100);
+        }
+
+        // 4. Render the View
+        $this->view('jobseeker/tracker', ['applications' => $applications]);
     }
 }

@@ -61,4 +61,26 @@ class JobSeeker
             return false;
         }
     }
+
+    // Fetch all applications submitted by the active user
+    public function getMyApplications($userId)
+    {
+        $sql = "SELECT 
+                    a.application_id, 
+                    a.application_status, 
+                    a.application_date, 
+                    a.ai_match_score,
+                    jp.job_title, 
+                    e.company_name
+                FROM Applications a
+                JOIN Job_Seekers js ON a.jobseeker_id = js.jobseeker_id
+                JOIN Job_Postings jp ON a.job_id = jp.job_id
+                JOIN Employers e ON jp.employer_id = e.employer_id
+                WHERE js.user_id = :user_id
+                ORDER BY a.application_date DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll();
+    }
 }

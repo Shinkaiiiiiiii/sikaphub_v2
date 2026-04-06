@@ -72,6 +72,7 @@ $router->post('/build-profile', ['ProfileController', 'buildProfile']);
 
 // Job Seeker Dashboard & Application Routes
 $router->get('/dashboard', ['JobSeekerController', 'dashboard']);
+$router->get('/my-applications', ['JobSeekerController', 'tracker']);
 $router->post('/apply', ['JobSeekerController', 'apply']);
 
 // Job Routes

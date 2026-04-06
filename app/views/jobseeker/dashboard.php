@@ -84,6 +84,15 @@
         <p>Top Matches for Your Skills</p>
     </div>
 
+    <div class="nav-tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <a href="/sikaphub_v2/dashboard"
+            style="padding: 10px 15px; text-decoration: none; border-radius: 3px; font-weight: bold; background: #0056b3; color: white;">Smart
+            Feed</a>
+        <a href="/sikaphub_v2/my-applications"
+            style="padding: 10px 15px; text-decoration: none; border-radius: 3px; font-weight: bold; background: #e0e0e0; color: #333;">Application
+            Tracker</a>
+    </div>
+
     <div class="feed">
         <?php if (empty($jobs)): ?>
             <p>No open jobs available at the moment.</p>
