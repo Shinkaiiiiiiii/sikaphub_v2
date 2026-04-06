@@ -43,6 +43,8 @@
 <body>
     <h2>Create an Account</h2>
     <form method="POST" action="">
+        <?php echo CSRF::csrfField(); ?>
+
         <div class="form-group">
             <label>Username</label>
             <input type="text" name="username" required>

@@ -19,8 +19,9 @@ class AuthController extends Controller
             $userModel = $this->model('User');
 
             if ($userModel->register($username, $email, $password, $role)) {
-                echo "Registration Successful! Account status is Pending.";
-                // In the future, we will redirect to a login view here
+                // Redirect to login upon successful registration
+                header("Location: /sikaphub_v2/login");
+                exit();
             } else {
                 echo "Registration Failed. Username or Email might already exist.";
             }
@@ -49,8 +50,23 @@ class AuthController extends Controller
                 $_SESSION['role'] = $loggedInUser['role'];
                 $_SESSION['account_status'] = $loggedInUser['account_status'];
 
-                echo "Login Successful! Welcome " . $_SESSION['username'];
-                // In the future, redirect to the specific dashboard based on role
+                // AUTOMATIC UX ROUTING BASED ON ROLE & STATUS
+                if ($_SESSION['account_status'] === 'Pending') {
+                    header("Location: /sikaphub_v2/onboarding");
+                    exit();
+                }
+
+                if ($_SESSION['role'] === 'admin') {
+                    header("Location: /sikaphub_v2/admin/dashboard");
+                    exit();
+                } elseif ($_SESSION['role'] === 'employer') {
+                    header("Location: /sikaphub_v2/employer/dashboard");
+                    exit();
+                } elseif ($_SESSION['role'] === 'jobseeker') {
+                    header("Location: /sikaphub_v2/dashboard");
+                    exit();
+                }
+
             } else {
                 echo "Invalid credentials.";
             }
@@ -81,6 +97,9 @@ class AuthController extends Controller
 
         // Destroy the session entirely
         session_destroy();
-        echo "Logged out successfully.";
+
+        // Redirect back to login page
+        header("Location: /sikaphub_v2/login");
+        exit();
     }
 }

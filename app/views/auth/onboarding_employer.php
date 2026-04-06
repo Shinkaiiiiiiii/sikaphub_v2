@@ -52,6 +52,8 @@
     <p>Complete your profile to start hiring. You must upload a valid Business Permit for verification.</p>
 
     <form method="POST" action="" enctype="multipart/form-data">
+        <?php echo CSRF::csrfField(); ?>
+
         <div class="form-group">
             <label>Company Name</label>
             <input type="text" name="company_name" required>

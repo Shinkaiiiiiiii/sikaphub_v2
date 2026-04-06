@@ -46,6 +46,8 @@
     <p>Welcome! We need a few more details before you can apply for jobs in Guimba.</p>
 
     <form method="POST" action="">
+        <?php echo CSRF::csrfField(); ?>
+
         <div class="form-group">
             <label>First Name</label>
             <input type="text" name="first_name" required>

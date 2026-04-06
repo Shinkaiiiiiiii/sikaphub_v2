@@ -2,6 +2,15 @@
 
 class Controller
 {
+    public function __construct()
+    {
+        // Automatically intercept and secure ALL POST requests across the entire application
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once BASE_PATH . 'app/helpers/CSRF.php';
+            CSRF::verifyRequest();
+        }
+    }
+
     // Instantiate a model class
     public function model($model)
     {
@@ -16,8 +25,7 @@ class Controller
             // Extract array keys into variables (e.g., $data['name'] becomes $name)
             extract($data);
             require_once BASE_PATH . 'app/views/' . $view . '.php';
-        }
-        else {
+        } else {
             die("View does not exist.");
         }
     }

@@ -10,6 +10,13 @@ define('BASE_PATH', dirname(__DIR__) . '/');
 // Load Composer Dependencies
 require_once BASE_PATH . 'vendor/autoload.php';
 
+// Load Core Helpers (CSRF MUST load early)
+require_once BASE_PATH . 'app/helpers/CSRF.php';
+require_once BASE_PATH . 'app/helpers/AuthGuard.php';
+
+// Initialize Global CSRF Token
+CSRF::generateToken();
+
 // 3. Simple .env Loader
 function loadEnv($path)
 {
@@ -28,7 +35,6 @@ loadEnv(BASE_PATH . '.env');
 // 4. Autoload Core Classes
 require_once BASE_PATH . 'config/Database.php';
 require_once BASE_PATH . 'app/core/Router.php';
-require_once BASE_PATH . 'app/helpers/AuthGuard.php';
 require_once BASE_PATH . 'app/controllers/AuthController.php';
 require_once BASE_PATH . 'app/controllers/ProfileController.php';
 require_once BASE_PATH . 'app/controllers/AdminController.php';

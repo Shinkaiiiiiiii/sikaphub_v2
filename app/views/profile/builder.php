@@ -29,6 +29,8 @@
 <body>
     <h2>Define Your Skill Profile</h2>
     <form method="POST" action="">
+        <?php echo CSRF::csrfField(); ?>
+
         <div class="skill-list">
             <p>Select your competencies:</p>
             <?php foreach ($skills as $skill): ?>

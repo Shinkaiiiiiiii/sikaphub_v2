@@ -150,6 +150,8 @@
                         </td>
                         <td>
                             <form method="POST" action="/sikaphub_v2/admin/verify-employer" style="display: flex; gap: 5px;">
+                                <?php echo CSRF::csrfField(); ?>
+
                                 <input type="hidden" name="employer_id" value="<?php echo $emp['employer_id']; ?>">
                                 <button type="submit" name="status" value="Verified"
                                     style="background: #28a745; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold;">Approve</button>

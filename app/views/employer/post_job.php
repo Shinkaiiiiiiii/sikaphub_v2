@@ -57,6 +57,8 @@
     <p>Define your requirements. The AI engine will use these parameters to rank candidates.</p>
 
     <form method="POST" action="">
+        <?php echo CSRF::csrfField(); ?>
+
         <div class="form-group">
             <label>Job Title</label>
             <input type="text" name="job_title" placeholder="e.g., Senior Web Developer" required>

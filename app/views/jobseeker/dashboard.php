@@ -120,6 +120,8 @@
                             <?php echo $job['match_percentage']; ?>%
                         </div>
                         <form method="POST" action="/sikaphub_v2/apply">
+                            <?php echo CSRF::csrfField(); ?>
+
                             <input type="hidden" name="job_id" value="<?php echo $job['job_id']; ?>">
                             <input type="hidden" name="match_score" value="<?php echo $job['match_score']; ?>">
                             <button type="submit" class="btn-apply">Apply Now</button>

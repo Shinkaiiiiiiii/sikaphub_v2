@@ -118,19 +118,21 @@
                 <?php echo htmlspecialchars($app['application_status']); ?>
             </span>
             <form method="POST" action="" style="margin-left: auto;">
+                <?php echo CSRF::csrfField(); ?>
+
                 <select name="status">
                     <option value="Pending" <?php if ($app['application_status'] == 'Pending')
-                        echo 'selected'; ?>
-                        >Pending</option>
+                        echo 'selected'; ?>>Pending
+                    </option>
                     <option value="Reviewed" <?php if ($app['application_status'] == 'Reviewed')
-                        echo 'selected'; ?>
-                        >Reviewed</option>
+                        echo 'selected'; ?>>
+                        Reviewed</option>
                     <option value="Accepted" <?php if ($app['application_status'] == 'Accepted')
-                        echo 'selected'; ?>
-                        >Accepted</option>
+                        echo 'selected'; ?>>
+                        Accepted</option>
                     <option value="Rejected" <?php if ($app['application_status'] == 'Rejected')
-                        echo 'selected'; ?>
-                        >Rejected</option>
+                        echo 'selected'; ?>>
+                        Rejected</option>
                 </select>
                 <button type="submit" class="btn-update">Update Status</button>
             </form>
