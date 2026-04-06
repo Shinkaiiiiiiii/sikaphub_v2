@@ -47,4 +47,34 @@ class Admin
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+    // Fetch the queue of unverified employers
+    public function getPendingEmployers()
+    {
+        $sql = "SELECT 
+                    e.employer_id, 
+                    e.company_name, 
+                    e.contact_person, 
+                    e.company_email, 
+                    e.company_phone, 
+                    e.business_permit, 
+                    e.verified_status
+                FROM Employers e
+                WHERE e.verified_status = 'Pending'
+                ORDER BY e.employer_id ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Securely update the employer's verification status
+    public function updateEmployerVerification($employerId, $status)
+    {
+        $sql = "UPDATE Employers SET verified_status = :status WHERE employer_id = :employer_id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':status' => $status,
+            ':employer_id' => $employerId
+        ]);
+    }
 }

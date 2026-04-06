@@ -87,6 +87,8 @@ $router->post('/employer/review-candidate', ['EmployerController', 'reviewCandid
 // Admin Routes
 $router->get('/admin/dashboard', ['AdminController', 'dashboard']);
 $router->get('/admin/export', ['AdminController', 'exportPdf']);
+$router->post('/admin/verify-employer', ['AdminController', 'verifyEmployer']);
+$router->get('/admin/view-document', ['AdminController', 'viewDocument']);
 
 // AI Engine Test Route
 $router->get('/test-ai', function () {
