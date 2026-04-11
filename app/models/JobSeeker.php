@@ -9,13 +9,31 @@ class JobSeeker
         $this->db = Database::getInstance()->getConnection();
     }
 
+    // =========================================================================
+    // V2 RELATIONAL BRIDGE
+    // =========================================================================
+
+    // Translates the authenticated User ID into the JobSeeker Primary Key
+    public function getJobseekerIdByUserId($userId)
+    {
+        $sql = "SELECT jobseeker_id FROM job_seekers WHERE user_id = :user_id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        $result = $stmt->fetch();
+        return $result ? $result['jobseeker_id'] : false;
+    }
+
+    // =========================================================================
+    // CORE DASHBOARD QUERIES
+    // =========================================================================
+
     public function getAllOpenJobs()
     {
         $sql = "SELECT jp.job_id, jp.job_title, jp.salary_range, jp.employment_type, jp.date_posted, 
                        e.company_name, b.barangay_name
-                FROM Job_Postings jp
-                JOIN Employers e ON jp.employer_id = e.employer_id
-                JOIN Barangays b ON jp.barangay_id = b.barangay_id
+                FROM job_postings jp
+                JOIN employers e ON jp.employer_id = e.employer_id
+                JOIN barangays b ON jp.barangay_id = b.barangay_id
                 WHERE jp.job_status = 'Open'
                 ORDER BY jp.date_posted DESC";
 
@@ -24,10 +42,14 @@ class JobSeeker
         return $stmt->fetchAll();
     }
 
+    // =========================================================================
+    // APPLICATION TRANSACTIONS
+    // =========================================================================
+
     // Check if the user has already applied to this specific job
     public function hasAlreadyApplied($jobseekerId, $jobId)
     {
-        $sql = "SELECT application_id FROM Applications WHERE jobseeker_id = :jobseeker_id AND job_id = :job_id LIMIT 1";
+        $sql = "SELECT application_id FROM applications WHERE jobseeker_id = :jobseeker_id AND job_id = :job_id LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':jobseeker_id' => $jobseekerId,
@@ -42,7 +64,7 @@ class JobSeeker
         try {
             $this->db->beginTransaction();
 
-            $sql = "INSERT INTO Applications (jobseeker_id, job_id, ai_match_score, application_status) 
+            $sql = "INSERT INTO applications (jobseeker_id, job_id, ai_match_score, application_status) 
                     VALUES (:jobseeker_id, :job_id, :ai_match_score, 'Pending')";
 
             $stmt = $this->db->prepare($sql);
@@ -62,8 +84,8 @@ class JobSeeker
         }
     }
 
-    // Fetch all applications submitted by the active user
-    public function getMyApplications($userId)
+    // Fetch all applications submitted by the active user (Updated for V2 Relational ID)
+    public function getMyApplications($jobseekerId)
     {
         $sql = "SELECT 
                     a.application_id, 
@@ -72,15 +94,14 @@ class JobSeeker
                     a.ai_match_score,
                     jp.job_title, 
                     e.company_name
-                FROM Applications a
-                JOIN Job_Seekers js ON a.jobseeker_id = js.jobseeker_id
-                JOIN Job_Postings jp ON a.job_id = jp.job_id
-                JOIN Employers e ON jp.employer_id = e.employer_id
-                WHERE js.user_id = :user_id
+                FROM applications a
+                JOIN job_postings jp ON a.job_id = jp.job_id
+                JOIN employers e ON jp.employer_id = e.employer_id
+                WHERE a.jobseeker_id = :jobseeker_id
                 ORDER BY a.application_date DESC";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':user_id' => $userId]);
+        $stmt->execute([':jobseeker_id' => $jobseekerId]);
         return $stmt->fetchAll();
     }
 }

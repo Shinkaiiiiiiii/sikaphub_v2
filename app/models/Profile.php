@@ -73,6 +73,22 @@ class Profile
         return $stmt->fetchAll();
     }
 
+    public function getSeekerProfile($userId)
+    {
+        $sql = "SELECT * FROM job_seekers WHERE user_id = :user_id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getEmployerProfile($userId)
+    {
+        $sql = "SELECT * FROM employers WHERE user_id = :user_id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     private function getJobseekerId($userId)
     {
         $sql = "SELECT jobseeker_id FROM job_seekers WHERE user_id = :user_id LIMIT 1";
@@ -94,6 +110,15 @@ class Profile
 
         try {
             $this->db->beginTransaction();
+
+            // 0. Update Job Seeker Assets (Profile Photo & Resume)
+            $sqlAssets = "UPDATE job_seekers SET profile_photo = :photo, resume_file = :resume WHERE jobseeker_id = :jobseeker_id";
+            $stmtAssets = $this->db->prepare($sqlAssets);
+            $stmtAssets->execute([
+                ':photo' => $payload['profile_photo'],
+                ':resume' => $payload['resume_file'],
+                ':jobseeker_id' => $jobseekerId
+            ]);
 
             // 1. Insert or Update Job Preferences
             $pref = $payload['preferences'];
@@ -161,7 +186,8 @@ class Profile
             $finalSkillIds = $payload['standard_skills'];
 
             if (!empty($payload['custom_skills'])) {
-                $sqlInsertSkill = "INSERT IGNORE INTO master_skills (skill_name, status) VALUES (:skill_name, 'pending')";
+                // RESTORED FIX: Explicitly set category_id = 1
+                $sqlInsertSkill = "INSERT IGNORE INTO master_skills (category_id, skill_name, status) VALUES (1, :skill_name, 'pending')";
                 $stmtInsertSkill = $this->db->prepare($sqlInsertSkill);
 
                 $sqlFetchSkill = "SELECT skill_id FROM master_skills WHERE skill_name = :skill_name LIMIT 1";
@@ -204,14 +230,36 @@ class Profile
         }
     }
 
+    // =========================================================================
+    // EMPLOYER TRANSACTION (V2 EXPANDED)
+    // =========================================================================
+
     public function saveEmployerProfile($payload)
     {
         try {
-            $sql = "UPDATE employers SET company_description = :desc, website_url = :url WHERE user_id = :user_id";
+            $sql = "UPDATE employers SET 
+                        company_phone = :company_phone,
+                        industry = :industry,
+                        company_size = :company_size,
+                        company_logo = :company_logo,
+                        company_description = :company_description,
+                        website_url = :website_url,
+                        facebook_url = :facebook_url,
+                        linkedin_url = :linkedin_url,
+                        twitter_url = :twitter_url
+                    WHERE user_id = :user_id";
+
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
-                ':desc' => $payload['company_description'],
-                ':url' => $payload['website_url'],
+                ':company_phone' => $payload['company_phone'],
+                ':industry' => $payload['industry'],
+                ':company_size' => $payload['company_size'],
+                ':company_logo' => $payload['company_logo'],
+                ':company_description' => $payload['company_description'],
+                ':website_url' => $payload['website_url'],
+                ':facebook_url' => $payload['facebook_url'],
+                ':linkedin_url' => $payload['linkedin_url'],
+                ':twitter_url' => $payload['twitter_url'],
                 ':user_id' => $payload['user_id']
             ]);
         } catch (PDOException $e) {

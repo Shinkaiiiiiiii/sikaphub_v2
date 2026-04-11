@@ -43,8 +43,59 @@ class ProfileController extends Controller
     private function processJobSeekerUpdate($profileModel)
     {
         $userId = $_SESSION['user_id'];
+        $existingProfile = $profileModel->getSeekerProfile($userId); // Fetch existing to retain current files
 
-        // 1. Sanitize Core Preferences
+        // 1. Secure File Upload Logic (Profile Photo)
+        $photoPath = $existingProfile['profile_photo'] ?? null;
+        if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            $fileTmp = $_FILES['profile_photo']['tmp_name'];
+            $fileType = function_exists('mime_content_type') ? mime_content_type($fileTmp) : $_FILES['profile_photo']['type'];
+            $fileSize = $_FILES['profile_photo']['size'];
+
+            // 2MB size limit
+            if (in_array($fileType, $allowedTypes) && $fileSize <= 2097152) {
+                $ext = pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION);
+                $newFileName = uniqid('photo_', true) . '.' . $ext;
+
+                $uploadDir = BASE_PATH . 'storage/uploads/profile_photos/';
+                if (!is_dir($uploadDir))
+                    mkdir($uploadDir, 0755, true);
+
+                $destPath = $uploadDir . $newFileName;
+                if (move_uploaded_file($fileTmp, $destPath))
+                    $photoPath = $newFileName;
+            } else {
+                die("Security Violation: Invalid photo type or file exceeds 2MB limit.");
+            }
+        }
+
+        // 2. Secure File Upload Logic (Resume PDF)
+        $resumePath = $existingProfile['resume_file'] ?? null;
+        if (isset($_FILES['resume_file']) && $_FILES['resume_file']['error'] === UPLOAD_ERR_OK) {
+            $allowedTypes = ['application/pdf'];
+            $fileTmp = $_FILES['resume_file']['tmp_name'];
+            $fileType = function_exists('mime_content_type') ? mime_content_type($fileTmp) : $_FILES['resume_file']['type'];
+            $fileSize = $_FILES['resume_file']['size'];
+
+            // 5MB size limit for PDFs
+            if (in_array($fileType, $allowedTypes) && $fileSize <= 5242880) {
+                $ext = pathinfo($_FILES['resume_file']['name'], PATHINFO_EXTENSION);
+                $newFileName = uniqid('resume_', true) . '.' . $ext;
+
+                $uploadDir = BASE_PATH . 'storage/uploads/resumes/';
+                if (!is_dir($uploadDir))
+                    mkdir($uploadDir, 0755, true);
+
+                $destPath = $uploadDir . $newFileName;
+                if (move_uploaded_file($fileTmp, $destPath))
+                    $resumePath = $newFileName;
+            } else {
+                die("Security Violation: Invalid resume type or file exceeds 5MB limit.");
+            }
+        }
+
+        // 3. Sanitize Core Preferences
         $preferences = [
             'desired_job_type' => htmlspecialchars(trim($_POST['desired_job_type'] ?? '')),
             'industry' => htmlspecialchars(trim($_POST['industry'] ?? '')),
@@ -53,7 +104,7 @@ class ProfileController extends Controller
             'preferred_barangay_id' => !empty($_POST['preferred_barangay_id']) ? (int) $_POST['preferred_barangay_id'] : null
         ];
 
-        // 2. Sanitize Multidimensional Arrays (Education)
+        // 4. Sanitize Multidimensional Arrays (Education)
         $educationData = [];
         if (!empty($_POST['education']) && is_array($_POST['education'])) {
             foreach ($_POST['education'] as $edu) {
@@ -67,7 +118,7 @@ class ProfileController extends Controller
             }
         }
 
-        // 3. Sanitize Multidimensional Arrays (Work Experience)
+        // 5. Sanitize Multidimensional Arrays (Work Experience)
         $experienceData = [];
         if (!empty($_POST['experience']) && is_array($_POST['experience'])) {
             foreach ($_POST['experience'] as $exp) {
@@ -83,7 +134,7 @@ class ProfileController extends Controller
             }
         }
 
-        // 4. Extract Standard Skills and Custom Skills
+        // 6. Extract Standard Skills and Custom Skills
         $standardSkillIds = isset($_POST['skills']) && is_array($_POST['skills']) ? array_map('intval', $_POST['skills']) : [];
 
         $customSkills = [];
@@ -97,9 +148,11 @@ class ProfileController extends Controller
             }
         }
 
-        // 5. Package Payload
+        // 7. Package Payload
         $payload = [
             'user_id' => $userId,
+            'profile_photo' => $photoPath, // Injected File Path
+            'resume_file' => $resumePath,  // Injected File Path
             'preferences' => $preferences,
             'education' => $educationData,
             'experience' => $experienceData,
@@ -107,7 +160,7 @@ class ProfileController extends Controller
             'custom_skills' => $customSkills
         ];
 
-        // 6. Execute Transaction and Trigger AI Recompute
+        // 8. Execute Transaction and Trigger AI Recompute
         if ($profileModel->saveCompleteSeekerProfile($payload)) {
 
             // PHASE 4 TRIGGER RETAINED: The exact moment data is saved, call the AI
@@ -139,18 +192,59 @@ class ProfileController extends Controller
     private function processEmployerUpdate($profileModel)
     {
         $userId = $_SESSION['user_id'];
+        $existingProfile = $profileModel->getEmployerProfile($userId);
 
+        // 1. Secure File Upload Logic (Company Logo)
+        $logoPath = $existingProfile['company_logo'] ?? null; // Retain existing logo by default
+
+        if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] === UPLOAD_ERR_OK) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            $fileTmp = $_FILES['company_logo']['tmp_name'];
+
+            // Safe MIME check fallback in case mime_content_type is disabled on some servers
+            $fileType = function_exists('mime_content_type') ? mime_content_type($fileTmp) : $_FILES['company_logo']['type'];
+            $fileSize = $_FILES['company_logo']['size'];
+
+            // Enforce MIME type and 2MB size limit
+            if (in_array($fileType, $allowedTypes) && $fileSize <= 2097152) {
+                $ext = pathinfo($_FILES['company_logo']['name'], PATHINFO_EXTENSION);
+                $newFileName = uniqid('logo_', true) . '.' . $ext;
+
+                // Ensure the upload directory exists
+                $uploadDir = BASE_PATH . 'storage/uploads/logos/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                $destPath = $uploadDir . $newFileName;
+                if (move_uploaded_file($fileTmp, $destPath)) {
+                    $logoPath = $newFileName;
+                }
+            } else {
+                die("Security Violation: Invalid file type or file exceeds 2MB limit.");
+            }
+        }
+
+        // 2. Sanitize and Package the Complete Payload
         $payload = [
             'user_id' => $userId,
+            'company_phone' => htmlspecialchars(trim($_POST['company_phone'] ?? '')),
+            'industry' => htmlspecialchars(trim($_POST['industry'] ?? '')),
+            'company_size' => htmlspecialchars(trim($_POST['company_size'] ?? '')),
+            'company_logo' => $logoPath,
             'company_description' => htmlspecialchars(trim($_POST['company_description'] ?? '')),
-            'website_url' => filter_var(trim($_POST['website_url'] ?? ''), FILTER_SANITIZE_URL)
+            'website_url' => filter_var(trim($_POST['website_url'] ?? ''), FILTER_SANITIZE_URL),
+            'facebook_url' => filter_var(trim($_POST['facebook_url'] ?? ''), FILTER_SANITIZE_URL),
+            'linkedin_url' => filter_var(trim($_POST['linkedin_url'] ?? ''), FILTER_SANITIZE_URL),
+            'twitter_url' => filter_var(trim($_POST['twitter_url'] ?? ''), FILTER_SANITIZE_URL)
         ];
 
+        // 3. Execute Model Transaction
         if ($profileModel->saveEmployerProfile($payload)) {
             header("Location: /sikaphub_v2/employer/dashboard?profile_updated=1");
             exit();
         } else {
-            die("Critical Database Error: Update failed.");
+            die("Critical Database Error: Employer Profile update failed.");
         }
     }
 

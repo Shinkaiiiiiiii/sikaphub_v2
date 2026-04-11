@@ -19,11 +19,13 @@ class AuthController extends Controller
             $userModel = $this->model('User');
 
             if ($userModel->register($username, $email, $password, $role)) {
-                // Redirect to login upon successful registration
-                header("Location: /sikaphub_v2/login");
+                // V2 Polish: Redirect to login with a success flag for the Toast UI
+                header("Location: /sikaphub_v2/login?success=registered");
                 exit();
             } else {
-                echo "Registration Failed. Username or Email might already exist.";
+                // V2 Polish: Redirect back to register with an error flag
+                header("Location: /sikaphub_v2/register?error=registration_failed");
+                exit();
             }
         } else {
             // If GET request, load the registration view
@@ -50,7 +52,7 @@ class AuthController extends Controller
                 $_SESSION['role'] = $loggedInUser['role'];
                 $_SESSION['account_status'] = $loggedInUser['account_status'];
 
-                // AUTOMATIC UX ROUTING BASED ON ROLE & STATUS
+                // AUTOMATIC UX ROUTING BASED ON ROLE & STATUS (The Universal Switchboard)
                 if ($_SESSION['account_status'] === 'Pending') {
                     header("Location: /sikaphub_v2/onboarding");
                     exit();
@@ -68,7 +70,9 @@ class AuthController extends Controller
                 }
 
             } else {
-                echo "Invalid credentials.";
+                // V2 Polish: Redirect back to login with an error flag
+                header("Location: /sikaphub_v2/login?error=invalid_credentials");
+                exit();
             }
         } else {
             // If GET request, load the login view
@@ -81,7 +85,7 @@ class AuthController extends Controller
         // Unset all session variables
         $_SESSION = array();
 
-        // Destroy the session cookie
+        // Destroy the session cookie securely
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
             setcookie(
@@ -98,8 +102,8 @@ class AuthController extends Controller
         // Destroy the session entirely
         session_destroy();
 
-        // Redirect back to login page
-        header("Location: /sikaphub_v2/login");
+        // Redirect back to login page with a success flag
+        header("Location: /sikaphub_v2/login?success=logged_out");
         exit();
     }
 }

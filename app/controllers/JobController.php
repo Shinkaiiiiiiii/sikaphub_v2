@@ -2,9 +2,7 @@
 
 require_once BASE_PATH . 'app/core/Controller.php';
 require_once BASE_PATH . 'app/helpers/AuthGuard.php';
-
-// 1. Import the AI Service
-require_once BASE_PATH . 'app/services/AIEngineService.php';
+require_once BASE_PATH . 'app/services/AIEngineService.php'; // Retained your AI Service
 
 class JobController extends Controller
 {
@@ -20,6 +18,7 @@ class JobController extends Controller
 
         $jobModel = $this->model('Job');
 
+        // 2. HTTP Method Branching
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Retrieve Employer ID
             $employerId = $jobModel->getEmployerIdByUserId($_SESSION['user_id']);
@@ -28,60 +27,62 @@ class JobController extends Controller
                 die("Critical Error: Employer profile not found for this user.");
             }
 
-            // Sanitize core inputs
+            // Sanitize core inputs - Perfectly matching your robust V2 Database Schema
             $jobData = [
-                'job_title' => htmlspecialchars(trim($_POST['job_title'])),
-                'job_description' => htmlspecialchars(trim($_POST['job_description'])),
-                'required_experience' => htmlspecialchars(trim($_POST['required_experience'])),
-                'salary_range' => htmlspecialchars(trim($_POST['salary_range'])),
-                'employment_type' => $_POST['employment_type'],
-                'barangay_id' => (int) $_POST['barangay_id']
+                'job_title' => htmlspecialchars(trim($_POST['job_title'] ?? '')),
+                'job_description' => htmlspecialchars(trim($_POST['job_description'] ?? '')),
+                'required_experience' => htmlspecialchars(trim($_POST['required_experience'] ?? '')),
+                'salary_range' => htmlspecialchars(trim($_POST['salary_range'] ?? '')),
+                'employment_type' => in_array($_POST['employment_type'] ?? '', ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship']) ? $_POST['employment_type'] : 'Full-time',
+                'barangay_id' => !empty($_POST['barangay_id']) ? (int) $_POST['barangay_id'] : null
             ];
 
-            // Retrieve array of selected skill IDs
-            $selectedSkills = isset($_POST['skills']) ? $_POST['skills'] : [];
+            // 3. Prepare the AI Matrix Payload (Linking IDs to Requirement Types)
+            $selectedSkills = [];
+            if (isset($_POST['skills']) && is_array($_POST['skills'])) {
+                foreach ($_POST['skills'] as $skillId) {
+                    // Default to 'Mandatory' to satisfy your junction table schema
+                    $reqType = isset($_POST['requirement_type'][$skillId]) ? htmlspecialchars(trim($_POST['requirement_type'][$skillId])) : 'Mandatory';
+                    $selectedSkills[(int) $skillId] = $reqType;
+                }
+            }
 
             if (empty($selectedSkills)) {
-                echo "Validation Error: You must select at least one required skill for the AI engine.";
-            } else {
-                $newJobId = $jobModel->createJobPosting($employerId, $jobData, $selectedSkills);
+                die("Validation Error: You must select at least one required skill for the AI engine.");
+            }
 
-                if ($newJobId) {
-                    echo "<h3>Job Posted Successfully!</h3>";
-                    echo "<p>Job ID: " . htmlspecialchars($newJobId) . "</p>";
+            // 4. Execute Unified PDO Transaction
+            $newJobId = $jobModel->createJobPosting($employerId, $jobData, $selectedSkills);
 
-                    // 2. Execute the AI Trigger Pipeline
-                    echo "<h4>Triggering AI Match Engine...</h4>";
-                    $aiService = new AIEngineService();
-                    $activeSeekers = $jobModel->getActiveJobSeekers();
+            if ($newJobId) {
 
-                    echo "<div style='background:#1e1e1e; color:#00ff00; padding:15px; border-radius:5px; font-family:monospace; margin-bottom: 20px;'>";
-                    echo "Initializing matrix calculation for Job ID: {$newJobId}...<br><br>";
+                // 5. Execute the AI Trigger Pipeline (Silently in the background)
+                $aiService = new AIEngineService();
+                $activeSeekers = $jobModel->getActiveJobSeekers();
+                $processedCount = 0;
 
-                    $processedCount = 0;
+                if (!empty($activeSeekers)) {
                     foreach ($activeSeekers as $seeker) {
                         $seekerId = $seeker['jobseeker_id'];
-
                         // Fire the S2S cURL request to Python
                         $result = $aiService->triggerMatchComputation($newJobId, $seekerId);
 
                         if ($result['success']) {
-                            $score = $result['data']['weighted_skill_score'];
-                            // Render the live calculation output to the screen
-                            echo "Seeker ID [{$seekerId}] processed. Weighted Score: <strong>{$score}</strong><br>";
+                            $processedCount++;
                         } else {
-                            echo "<span style='color:red;'>Failed to process Seeker ID [{$seekerId}]: " . htmlspecialchars($result['error']) . "</span><br>";
+                            error_log("AI Engine Match Failed for Seeker ID [{$seekerId}]: " . $result['error']);
                         }
-                        $processedCount++;
                     }
-                    echo "</div>";
-
-                    echo "<p>Successfully ranked <strong>{$processedCount}</strong> active candidates against this new opportunity.</p>";
-
-                } else {
-                    echo "Database Error: Could not post job.";
                 }
+
+                // Clean MVC Redirect: No raw HTML echoed from the Controller!
+                header("Location: /sikaphub_v2/employer/dashboard?job_posted=1&ranked=" . $processedCount);
+                exit();
+
+            } else {
+                die("Critical Database Error: Could not post job.");
             }
+
         } else {
             // GET Request: Load the UI with lookup dictionaries
             $data = [

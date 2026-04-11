@@ -12,7 +12,8 @@ class EmployerController extends Controller
         AuthGuard::requireActiveProfile();
 
         if ($_SESSION['role'] !== 'employer') {
-            die("Access Denied: Only verified employers can access the ATS.");
+            header("Location: /sikaphub_v2/dashboard?error=unauthorized");
+            exit();
         }
 
         $employerModel = $this->model('Employer');
@@ -27,19 +28,23 @@ class EmployerController extends Controller
         $jobs = $employerModel->getEmployerJobs($employerId);
 
         // 3. Attach the ranked applicants to each job
-        foreach ($jobs as $key => $job) {
-            $applicants = $employerModel->getRankedApplicantsForJob($job['job_id']);
+        if (!empty($jobs)) {
+            foreach ($jobs as $key => $job) {
+                $applicants = $employerModel->getRankedApplicantsForJob($job['job_id']);
 
-            // Convert decimal scores to clean percentages for the UI
-            foreach ($applicants as &$applicant) {
-                $applicant['match_percentage'] = round((float) $applicant['ai_match_score'] * 100);
+                // Convert decimal scores to clean percentages for the UI
+                if (!empty($applicants)) {
+                    foreach ($applicants as &$applicant) {
+                        $applicant['match_percentage'] = round((float) $applicant['ai_match_score'] * 100);
+                    }
+                }
+
+                $jobs[$key]['applicants'] = $applicants;
             }
-
-            $jobs[$key]['applicants'] = $applicants;
         }
 
         // 4. Render the View
-        $this->view('employer/dashboard', ['jobs' => $jobs]);
+        $this->view('employer/dashboard', ['jobs' => $jobs ?? []]);
     }
 
     public function reviewCandidate()
@@ -48,7 +53,8 @@ class EmployerController extends Controller
         AuthGuard::requireActiveProfile();
 
         if ($_SESSION['role'] !== 'employer') {
-            die("Access Denied: Restricted to verified employers.");
+            header("Location: /sikaphub_v2/dashboard?error=unauthorized");
+            exit();
         }
 
         $employerModel = $this->model('Employer');
@@ -58,25 +64,28 @@ class EmployerController extends Controller
         $appId = isset($_GET['app_id']) ? (int) $_GET['app_id'] : 0;
 
         if ($appId === 0) {
-            die("Invalid Application ID.");
+            header("Location: /sikaphub_v2/employer/dashboard?error=invalid_application");
+            exit();
         }
 
         // 3. Handle Status Update (POST Request)
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $newStatus = $_POST['status'];
+            $newStatus = $_POST['status'] ?? '';
             // Enforce ENUM constraints manually to prevent dirty data injection
             $allowedStatuses = ['Pending', 'Reviewed', 'Accepted', 'Rejected'];
 
             if (in_array($newStatus, $allowedStatuses)) {
                 if ($employerModel->updateApplicationStatus($appId, $employerId, $newStatus)) {
-                    // Redirect back via GET to prevent form resubmission on refresh
-                    header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&success=1");
+                    // Sleek redirect back to the review page with a Toast flag
+                    header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&status_updated=1");
                     exit();
                 } else {
-                    echo "Database Error: Could not update status.";
+                    header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&error=database_error");
+                    exit();
                 }
             } else {
-                echo "Invalid status provided.";
+                header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&error=invalid_status");
+                exit();
             }
         }
 
@@ -86,7 +95,8 @@ class EmployerController extends Controller
 
         if (!$application) {
             // Log this event in the future. It could be an attacker probing URLs.
-            die("Access Denied: Application not found or does not belong to your company.");
+            header("Location: /sikaphub_v2/employer/dashboard?error=access_denied_or_not_found");
+            exit();
         }
 
         // Fetch historical arrays
@@ -97,8 +107,7 @@ class EmployerController extends Controller
         $data = [
             'app' => $application,
             'education' => $education,
-            'experience' => $experience,
-            'success' => isset($_GET['success']) ? true : false
+            'experience' => $experience
         ];
 
         $this->view('employer/review_candidate', $data);
