@@ -16,6 +16,18 @@ class JobController extends Controller
             die("Access Denied: Only verified employers can post jobs.");
         }
 
+        // 2. Verification Gate: Abort if account is not fully approved by PESO
+        $employerModel = $this->model('Employer');
+        $employerId = $employerModel->getEmployerId($_SESSION['user_id']);
+        if ($employerId) {
+            $employerDetails = $employerModel->getEmployerDetails($employerId);
+            $verifiedStatus  = $employerDetails['verified_status'] ?? 'Pending';
+            if ($verifiedStatus === 'Pending' || $verifiedStatus === 'Rejected') {
+                header("Location: /sikaphub_v2/employer/dashboard?error=pending_verification");
+                exit();
+            }
+        }
+
         $jobModel = $this->model('Job');
 
         // 2. HTTP Method Branching

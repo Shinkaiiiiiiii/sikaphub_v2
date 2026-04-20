@@ -180,6 +180,62 @@
                 opacity: 0;
             }
         }
+        /* --- VERIFICATION STATUS BANNER --- */
+        .verification-banner {
+            background: #fef3e2;
+            color: #e67e22;
+            border: 1px solid #e67e22;
+            border-left: 5px solid #e67e22;
+            border-radius: 4px;
+            padding: 14px 20px;
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .verification-banner .banner-icon {
+            font-size: 1.3em;
+            flex-shrink: 0;
+        }
+
+        /* Disabled Post Job button state */
+        .btn-post-disabled {
+            background: #b0bec5;
+            color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 3px;
+            font-weight: bold;
+            cursor: not-allowed;
+            display: inline-block;
+            position: relative;
+        }
+
+        .btn-post-disabled::after {
+            content: "Account pending verification";
+            visibility: hidden;
+            opacity: 0;
+            background: #2c3e50;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 120%;
+            right: 0;
+            white-space: nowrap;
+            font-size: 0.8em;
+            font-weight: normal;
+            transition: opacity 0.2s;
+        }
+
+        .btn-post-disabled:hover::after {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -196,13 +252,29 @@
 
     <div id="toast-container"></div>
 
+    <?php if (($verified_status ?? 'Pending') !== 'Verified'): ?>
+    <div class="container">
+        <div class="verification-banner" role="alert">
+            <span class="banner-icon">⚠️</span>
+            <span>
+                <strong>Account Under Review:</strong> Your business permit is currently pending verification by PESO.
+                You cannot post jobs until approved.
+            </span>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="container">
         <div class="header">
             <div>
                 <h2>Employer ATS Dashboard</h2>
                 <p>Manage your job postings and review AI-ranked candidates.</p>
             </div>
-            <a href="/sikaphub_v2/post-job" class="btn-post">+ Post New Job</a>
+            <?php if (($verified_status ?? 'Pending') === 'Verified'): ?>
+                <a href="/sikaphub_v2/post-job" class="btn-post">+ Post New Job</a>
+            <?php else: ?>
+                <span class="btn-post-disabled">+ Post New Job</span>
+            <?php endif; ?>
         </div>
 
         <div class="feed">

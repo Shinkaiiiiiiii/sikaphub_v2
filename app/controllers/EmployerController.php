@@ -27,10 +27,16 @@ class EmployerController extends Controller
         // 2. Fetch the Employer's Jobs
         $jobs = $employerModel->getEmployerJobs($employerId);
 
-        // 3. Attach the ranked applicants to each job
+        // 3. Fetch employer core details for the Verification Gate
+        $employerDetails = $employerModel->getEmployerDetails($employerId);
+        $verifiedStatus = $employerDetails['verified_status'] ?? 'Pending';
+
+        // 4. Attach the ranked applicants to each job
+        // SECURITY FIX: Pass $employerId as the second argument so the model query
+        // enforces ownership; an employer can only receive applicants for their own jobs.
         if (!empty($jobs)) {
             foreach ($jobs as $key => $job) {
-                $applicants = $employerModel->getRankedApplicantsForJob($job['job_id']);
+                $applicants = $employerModel->getRankedApplicantsForJob($job['job_id'], $employerId);
 
                 // Convert decimal scores to clean percentages for the UI
                 if (!empty($applicants)) {
@@ -43,8 +49,11 @@ class EmployerController extends Controller
             }
         }
 
-        // 4. Render the View
-        $this->view('employer/dashboard', ['jobs' => $jobs ?? []]);
+        // 5. Render the View
+        $this->view('employer/dashboard', [
+            'jobs'            => $jobs ?? [],
+            'verified_status' => $verifiedStatus
+        ]);
     }
 
     public function reviewCandidate()

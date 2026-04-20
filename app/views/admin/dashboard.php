@@ -1147,6 +1147,7 @@
         const params   = new URLSearchParams(window.location.search);
         const success  = params.get('success');
         const error    = params.get('error');
+        const info     = params.get('info');
 
         const successMessages = {
             'verified': {
@@ -1178,6 +1179,17 @@
             'csrf_mismatch':    { title: 'Security Error', message: 'CSRF token mismatch. Please refresh and try again.' },
         };
 
+        const infoMessages = {
+            'export_queued': {
+                title:   'Export Queued',
+                message: 'The PDF is generating in the background.'
+            },
+            'under_construction': {
+                title:   'Coming Soon',
+                message: 'This module is currently under construction.'
+            },
+        };
+
         if (success && successMessages[success]) {
             const { title, message } = successMessages[success];
             showToast(title, message, 'success');
@@ -1193,8 +1205,16 @@
             showToast('An Error Occurred', decodeURIComponent(error).replace(/\+/g, ' '), 'error');
         }
 
+        if (info && infoMessages[info]) {
+            const { title, message } = infoMessages[info];
+            showToast(title, message, 'info');
+        } else if (info) {
+            /* Catch-all for unmapped info codes */
+            showToast('Notice', decodeURIComponent(info).replace(/\+/g, ' '), 'info');
+        }
+
         /* Clean the URL — remove query params without reloading */
-        if (success || error) {
+        if (success || error || info) {
             const cleanUrl = window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
         }

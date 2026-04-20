@@ -42,6 +42,7 @@ require_once BASE_PATH . 'app/controllers/OnboardingController.php';
 require_once BASE_PATH . 'app/controllers/JobController.php';
 require_once BASE_PATH . 'app/controllers/JobSeekerController.php';
 require_once BASE_PATH . 'app/controllers/EmployerController.php';
+require_once BASE_PATH . 'app/controllers/HomeController.php';
 require_once BASE_PATH . 'app/services/AIEngineService.php';
 
 // 5. Initialize Router
@@ -52,10 +53,8 @@ $baseUri = str_replace('/public/index.php', '', $_SERVER['SCRIPT_NAME']);
 $requestUri = str_replace($baseUri, '', $_SERVER['REQUEST_URI']);
 
 // 7. Define Application Routes
-$router->get('/', function () {
-    echo "<h1>S.I.K.A.P. Hub V2 MVC Engine is Live!</h1>";
-    echo "<a href='login'>Login</a> | <a href='register'>Register</a>";
-});
+// Landing Page Route
+$router->get('/', ['HomeController', 'index']);
 
 // Registration Routes
 $router->get('/register', ['AuthController', 'register']);
@@ -91,10 +90,17 @@ $router->get('/employer/review-candidate', ['EmployerController', 'reviewCandida
 $router->post('/employer/review-candidate', ['EmployerController', 'reviewCandidate']);
 
 // Admin Routes
-$router->get('/admin/dashboard', ['AdminController', 'dashboard']);
-$router->get('/admin/export', ['AdminController', 'exportPdf']);
+$router->get('/admin/dashboard',    ['AdminController', 'dashboard']);
+$router->get('/admin/export',       ['AdminController', 'exportPdf']);
+$router->get('/admin/employers',    ['AdminController', 'employers']);
+$router->get('/admin/seekers',      ['AdminController', 'seekers']);
+$router->get('/admin/jobs',         ['AdminController', 'jobs']);
+$router->get('/admin/skills',       ['AdminController', 'skills']);
+$router->get('/admin/audit-logs',   ['AdminController', 'auditLogs']);
+$router->get('/admin/logout',       ['AdminController', 'logout']);
 $router->post('/admin/verify-employer', ['AdminController', 'verifyEmployer']);
-$router->get('/admin/view-document', ['AdminController', 'viewDocument']);
+$router->post('/admin/approve-skill',   ['AdminController', 'approveSkill']);
+$router->get('/admin/view-document',    ['AdminController', 'viewDocument']);
 
 // AI Engine Test Route
 $router->get('/test-ai', function () {

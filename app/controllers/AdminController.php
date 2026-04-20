@@ -49,46 +49,163 @@ class AdminController extends Controller
         if ($_SESSION['role'] !== 'admin')
             die("Access Denied.");
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $skillId = (int) $_POST['skill_id'];
-            $action = $_POST['action']; // 'approve' or 'delete'
-            $adminModel = $this->model('Admin');
-
-            if ($action === 'approve') {
-                $adminModel->updateSkillStatus($skillId, 'approved');
-            } else {
-                $adminModel->deleteSkill($skillId);
-            }
-            header("Location: /sikaphub_v2/admin/dashboard?success=skill_updated");
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /sikaphub_v2/admin/dashboard");
             exit();
         }
+
+        $skillId = (int) ($_POST['skill_id'] ?? 0);
+        $action  = $_POST['action'] ?? ''; // 'approve' or 'delete'
+
+        if ($skillId <= 0 || !in_array($action, ['approve', 'delete'])) {
+            header("Location: /sikaphub_v2/admin/dashboard?error=invalid_id");
+            exit();
+        }
+
+        $adminModel = $this->model('Admin');
+
+        if ($action === 'approve') {
+            $adminModel->updateSkillStatus($skillId, 'approved');
+            header("Location: /sikaphub_v2/admin/dashboard?success=skill_approved");
+        } else {
+            $adminModel->deleteSkill($skillId);
+            header("Location: /sikaphub_v2/admin/dashboard?success=skill_deleted");
+        }
+        exit();
     }
 
-    // SECURE GATEWAY: Serves Resumes and Profile Photos
+    // SECURE GATEWAY: Serves Resumes, Profile Photos, and Business Permits
     public function viewDocument()
     {
         AuthGuard::requireLogin(); // Only logged-in users can see files
 
+        // basename() strips any directory traversal sequences (e.g. ../)
         $file = basename($_GET['file'] ?? '');
-        $type = $_GET['type'] ?? 'resume'; // 'resume' or 'photo'
+        $type = $_GET['type'] ?? 'resume'; // 'resume', 'photo', or 'document'
 
         if (empty($file))
             die("File not specified.");
 
-        // Define secure paths
-        $subfolder = ($type === 'photo') ? 'profile_photos/' : 'resumes/';
-        $filePath = BASE_PATH . 'storage/uploads/' . $subfolder . $file;
+        // Build an ordered list of candidate paths to search securely.
+        // basename() has already sanitised $file, so no traversal is possible.
+        $candidatePaths = [
+            BASE_PATH . 'storage/uploads/resumes/'        . $file,
+            BASE_PATH . 'storage/uploads/profile_photos/' . $file,
+            BASE_PATH . 'storage/documents/'              . $file,
+        ];
 
-        if (!file_exists($filePath)) {
+        // If the caller supplied a type hint, check that bucket first for speed.
+        if ($type === 'photo') {
+            $candidatePaths = [
+                BASE_PATH . 'storage/uploads/profile_photos/' . $file,
+                BASE_PATH . 'storage/uploads/resumes/'        . $file,
+                BASE_PATH . 'storage/documents/'              . $file,
+            ];
+        } elseif ($type === 'document') {
+            $candidatePaths = [
+                BASE_PATH . 'storage/documents/'              . $file,
+                BASE_PATH . 'storage/uploads/resumes/'        . $file,
+                BASE_PATH . 'storage/uploads/profile_photos/' . $file,
+            ];
+        }
+
+        $resolvedPath = null;
+        foreach ($candidatePaths as $candidate) {
+            if (file_exists($candidate)) {
+                $resolvedPath = $candidate;
+                break;
+            }
+        }
+
+        if ($resolvedPath === null) {
             die("Error 404: File not found in secure storage.");
         }
 
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($filePath);
+        $finfo    = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($resolvedPath);
 
         header('Content-Type: ' . $mimeType);
         header('Content-Disposition: inline; filename="' . $file . '"');
-        readfile($filePath);
+        readfile($resolvedPath);
+        exit();
+    }
+
+    // -------------------------------------------------------------------------
+    // PLACEHOLDER: PDF Export (queued for Phase 6 Reporting Engine)
+    // -------------------------------------------------------------------------
+    public function exportPdf()
+    {
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin')
+            die("Access Denied.");
+
+        header("Location: /sikaphub_v2/admin/dashboard?info=export_queued");
+        exit();
+    }
+
+    // -------------------------------------------------------------------------
+    // NAVBAR ROUTE PLACEHOLDERS — prevents 404s; queued for future phases
+    // -------------------------------------------------------------------------
+    public function employers()
+    {
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin')
+            die("Access Denied.");
+
+        header("Location: /sikaphub_v2/admin/dashboard?info=under_construction");
+        exit();
+    }
+
+    public function seekers()
+    {
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin')
+            die("Access Denied.");
+
+        header("Location: /sikaphub_v2/admin/dashboard?info=under_construction");
+        exit();
+    }
+
+    public function jobs()
+    {
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin')
+            die("Access Denied.");
+
+        header("Location: /sikaphub_v2/admin/dashboard?info=under_construction");
+        exit();
+    }
+
+    public function skills()
+    {
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin')
+            die("Access Denied.");
+
+        header("Location: /sikaphub_v2/admin/dashboard?info=under_construction");
+        exit();
+    }
+
+    public function auditLogs()
+    {
+        AuthGuard::requireLogin();
+        if ($_SESSION['role'] !== 'admin')
+            die("Access Denied.");
+
+        header("Location: /sikaphub_v2/admin/dashboard?info=under_construction");
+        exit();
+    }
+
+    // -------------------------------------------------------------------------
+    // LOGOUT
+    // -------------------------------------------------------------------------
+    public function logout()
+    {
+        // Destroy the session completely before redirecting.
+        session_unset();
+        session_destroy();
+
+        header("Location: /sikaphub_v2/login?success=logged_out");
         exit();
     }
 }

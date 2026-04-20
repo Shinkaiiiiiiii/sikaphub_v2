@@ -19,6 +19,15 @@ class Employer
         return $result ? $result['employer_id'] : false;
     }
 
+    // Fetch the employer's core profile row (includes verified_status)
+    public function getEmployerDetails($employerId)
+    {
+        $sql = "SELECT * FROM employers WHERE employer_id = :employer_id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':employer_id' => $employerId]);
+        return $stmt->fetch();
+    }
+
     // Fetch all jobs posted by this employer
     public function getEmployerJobs($employerId)
     {
@@ -32,7 +41,9 @@ class Employer
     }
 
     // Fetch applicants for a specific job, STRICTLY ordered by AI Match Score
-    public function getRankedApplicantsForJob($jobId)
+    // SECURITY FIX: JOIN job_postings to enforce employer ownership; prevents IDOR where
+    // an attacker passes an arbitrary job_id to view another company's applicants.
+    public function getRankedApplicantsForJob($jobId, $employerId)
     {
         $sql = "SELECT 
                     a.application_id, 
@@ -43,12 +54,17 @@ class Employer
                     js.last_name, 
                     js.contact_number
                 FROM applications a
+                JOIN job_postings jp ON a.job_id = jp.job_id
                 JOIN job_seekers js ON a.jobseeker_id = js.jobseeker_id
                 WHERE a.job_id = :job_id
+                  AND jp.employer_id = :employer_id
                 ORDER BY a.ai_match_score DESC, a.application_date ASC";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':job_id' => $jobId]);
+        $stmt->execute([
+            ':job_id'      => $jobId,
+            ':employer_id' => $employerId
+        ]);
         return $stmt->fetchAll();
     }
 
