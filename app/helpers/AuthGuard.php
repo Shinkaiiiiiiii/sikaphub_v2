@@ -17,7 +17,7 @@ class AuthGuard
         self::requireLogin();
 
         if ($_SESSION['account_status'] === 'Pending') {
-            header('Location: /sikaphub_v2/onboarding');
+            header('Location: /sikaphub_v2/build-profile');
             exit();
         }
     }

@@ -54,7 +54,7 @@ class AuthController extends Controller
 
                 // AUTOMATIC UX ROUTING BASED ON ROLE & STATUS (The Universal Switchboard)
                 if ($_SESSION['account_status'] === 'Pending') {
-                    header("Location: /sikaphub_v2/onboarding");
+                    header("Location: /sikaphub_v2/build-profile");
                     exit();
                 }
 

@@ -73,6 +73,14 @@ class Profile
         return $stmt->fetchAll();
     }
 
+    public function getMunicipalities()
+    {
+        $sql = "SELECT municipality_id, municipality_name, province_name FROM lib_municipalities ORDER BY province_name ASC, municipality_name ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public function getSeekerProfile($userId)
     {
         $sql = "SELECT * FROM job_seekers WHERE user_id = :user_id LIMIT 1";
@@ -104,21 +112,41 @@ class Profile
 
     public function saveCompleteSeekerProfile($payload)
     {
-        $jobseekerId = $this->getJobseekerId($payload['user_id']);
-        if (!$jobseekerId)
-            return false;
-
         try {
             $this->db->beginTransaction();
 
-            // 0. Update Job Seeker Assets (Profile Photo & Resume)
-            $sqlAssets = "UPDATE job_seekers SET profile_photo = :photo, resume_file = :resume WHERE jobseeker_id = :jobseeker_id";
-            $stmtAssets = $this->db->prepare($sqlAssets);
-            $stmtAssets->execute([
-                ':photo' => $payload['profile_photo'],
-                ':resume' => $payload['resume_file'],
-                ':jobseeker_id' => $jobseekerId
-            ]);
+            $jobseekerId = $this->getJobseekerId($payload['user_id']);
+
+            // 0. UPSERT Job Seeker Identity & Home Location
+            if (!$jobseekerId) {
+                // User doesn't exist in job_seekers yet -> INSERT
+                $sqlAssets = "INSERT INTO job_seekers (user_id, first_name, last_name, home_municipality_id, profile_visibility, profile_photo, resume_file) 
+                              VALUES (:user_id, :first_name, :last_name, :home_mun_id, :visibility, :photo, :resume)";
+                $stmtAssets = $this->db->prepare($sqlAssets);
+                $stmtAssets->execute([
+                    ':user_id' => $payload['user_id'],
+                    ':first_name' => $payload['first_name'],
+                    ':last_name' => $payload['last_name'],
+                    ':home_mun_id' => $payload['home_municipality_id'],
+                    ':visibility' => $payload['visibility'],
+                    ':photo' => $payload['profile_photo'],
+                    ':resume' => $payload['resume_file']
+                ]);
+                $jobseekerId = $this->db->lastInsertId(); // Capture the new ID!
+            } else {
+                // User exists -> UPDATE
+                $sqlAssets = "UPDATE job_seekers SET first_name = :first_name, last_name = :last_name, home_municipality_id = :home_mun_id, profile_visibility = :visibility, profile_photo = :photo, resume_file = :resume WHERE jobseeker_id = :jobseeker_id";
+                $stmtAssets = $this->db->prepare($sqlAssets);
+                $stmtAssets->execute([
+                    ':first_name' => $payload['first_name'],
+                    ':last_name' => $payload['last_name'],
+                    ':home_mun_id' => $payload['home_municipality_id'],
+                    ':visibility' => $payload['visibility'],
+                    ':photo' => $payload['profile_photo'],
+                    ':resume' => $payload['resume_file'],
+                    ':jobseeker_id' => $jobseekerId
+                ]);
+            }
 
             // 1. Insert or Update Job Preferences
             $pref = $payload['preferences'];
@@ -127,32 +155,35 @@ class Profile
             $stmtPrefCheck->execute([':jobseeker_id' => $jobseekerId]);
 
             if ($stmtPrefCheck->fetch()) {
-                $sqlPref = "UPDATE job_preferences SET 
-                            desired_job_type = :desired, industry = :industry, 
-                            expected_salary = :salary, preferred_work_setup = :setup, 
-                            preferred_barangay_id = :barangay
-                            WHERE jobseeker_id = :jobseeker_id";
+                $sqlPref = "UPDATE job_preferences SET desired_job_type = :desired, expected_salary = :salary, preferred_work_setup = :setup WHERE jobseeker_id = :jobseeker_id";
             } else {
-                $sqlPref = "INSERT INTO job_preferences 
-                            (jobseeker_id, desired_job_type, industry, expected_salary, preferred_work_setup, preferred_barangay_id)
-                            VALUES (:jobseeker_id, :desired, :industry, :salary, :setup, :barangay)";
+                $sqlPref = "INSERT INTO job_preferences (jobseeker_id, desired_job_type, expected_salary, preferred_work_setup) VALUES (:jobseeker_id, :desired, :salary, :setup)";
             }
-
             $stmtPref = $this->db->prepare($sqlPref);
             $stmtPref->execute([
                 ':jobseeker_id' => $jobseekerId,
                 ':desired' => $pref['desired_job_type'],
-                ':industry' => $pref['industry'],
                 ':salary' => $pref['expected_salary'],
-                ':setup' => $pref['preferred_work_setup'],
-                ':barangay' => $pref['preferred_barangay_id']
+                ':setup' => $pref['preferred_work_setup']
             ]);
+
+            // 1.5 Wipe and Replace Preferred Work Locations
+            $this->db->prepare("DELETE FROM preferred_work_locations WHERE jobseeker_id = ?")->execute([$jobseekerId]);
+            if (!empty($payload['preferences']['preferred_municipality_ids']) && is_array($payload['preferences']['preferred_municipality_ids'])) {
+                $sqlWorkLocs = "INSERT INTO preferred_work_locations (jobseeker_id, municipality_id) VALUES (:js_id, :mun_id)";
+                $stmtWorkLocs = $this->db->prepare($sqlWorkLocs);
+                foreach ($payload['preferences']['preferred_municipality_ids'] as $munId) {
+                    $stmtWorkLocs->execute([
+                        ':js_id' => $jobseekerId,
+                        ':mun_id' => $munId
+                    ]);
+                }
+            }
 
             // 2. Wipe and Replace Education Array
             $this->db->prepare("DELETE FROM education WHERE jobseeker_id = ?")->execute([$jobseekerId]);
             if (!empty($payload['education'])) {
-                $sqlEdu = "INSERT INTO education (jobseeker_id, degree_level, school_name, year_graduated) 
-                           VALUES (:js_id, :degree, :school, :year)";
+                $sqlEdu = "INSERT INTO education (jobseeker_id, degree_level, school_name, year_graduated) VALUES (:js_id, :degree, :school, :year)";
                 $stmtEdu = $this->db->prepare($sqlEdu);
                 foreach ($payload['education'] as $edu) {
                     $stmtEdu->execute([
@@ -167,8 +198,7 @@ class Profile
             // 3. Wipe and Replace Work Experience Array
             $this->db->prepare("DELETE FROM work_experience WHERE jobseeker_id = ?")->execute([$jobseekerId]);
             if (!empty($payload['experience'])) {
-                $sqlExp = "INSERT INTO work_experience (jobseeker_id, job_title, company_name, start_date, end_date, job_description) 
-                           VALUES (:js_id, :title, :company, :start, :end, :desc)";
+                $sqlExp = "INSERT INTO work_experience (jobseeker_id, job_title, company_name, start_date, end_date, job_description) VALUES (:js_id, :title, :company, :start, :end, :desc)";
                 $stmtExp = $this->db->prepare($sqlExp);
                 foreach ($payload['experience'] as $exp) {
                     $stmtExp->execute([
@@ -186,10 +216,8 @@ class Profile
             $finalSkillIds = $payload['standard_skills'];
 
             if (!empty($payload['custom_skills'])) {
-                // RESTORED FIX: Explicitly set category_id = 1
                 $sqlInsertSkill = "INSERT IGNORE INTO master_skills (category_id, skill_name, status) VALUES (1, :skill_name, 'pending')";
                 $stmtInsertSkill = $this->db->prepare($sqlInsertSkill);
-
                 $sqlFetchSkill = "SELECT skill_id FROM master_skills WHERE skill_name = :skill_name LIMIT 1";
                 $stmtFetchSkill = $this->db->prepare($sqlFetchSkill);
 
@@ -197,7 +225,6 @@ class Profile
                     $stmtInsertSkill->execute([':skill_name' => $customSkill]);
                     $stmtFetchSkill->execute([':skill_name' => $customSkill]);
                     $skillRow = $stmtFetchSkill->fetch();
-
                     if ($skillRow) {
                         $finalSkillIds[] = $skillRow['skill_id'];
                     }
@@ -206,11 +233,9 @@ class Profile
 
             $finalSkillIds = array_unique($finalSkillIds);
 
-            // Wipe and Replace Junction Table
             $this->db->prepare("DELETE FROM jobseeker_skills WHERE jobseeker_id = ?")->execute([$jobseekerId]);
             if (!empty($finalSkillIds)) {
-                $sqlSkillLink = "INSERT INTO jobseeker_skills (jobseeker_id, skill_id, proficiency_level) 
-                                 VALUES (:js_id, :skill_id, 'Intermediate')";
+                $sqlSkillLink = "INSERT INTO jobseeker_skills (jobseeker_id, skill_id, proficiency_level) VALUES (:js_id, :skill_id, 'Intermediate')";
                 $stmtSkillLink = $this->db->prepare($sqlSkillLink);
                 foreach ($finalSkillIds as $sId) {
                     $stmtSkillLink->execute([
@@ -220,13 +245,17 @@ class Profile
                 }
             }
 
+            // 5. Activate Account Status
+            $sqlActivate = "UPDATE users SET account_status = 'Active', updated_at = CURRENT_TIMESTAMP WHERE user_id = :user_id";
+            $stmtActivate = $this->db->prepare($sqlActivate);
+            $stmtActivate->execute([':user_id' => $payload['user_id']]);
+
             $this->db->commit();
             return true;
 
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("Critical Profile Transaction Failure: " . $e->getMessage());
-            return false;
+            die("<div style='background:#111;color:#0f0;padding:20px;font-family:monospace;font-size:16px;'><b>SQL FATAL ERROR:</b><br><br>" . $e->getMessage() . "</div>");
         }
     }
 
