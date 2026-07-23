@@ -246,12 +246,12 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Job Location (Target Barangay)</label>
-                    <select name="barangay_id" required>
-                        <option value="">Select Barangay...</option>
-                        <?php foreach ($barangays as $b): ?>
-                            <option value="<?php echo $b['barangay_id']; ?>">
-                                <?php echo htmlspecialchars($b['barangay_name']); ?>
+                    <label>Job Location (Target Municipality)</label>
+                    <select name="municipality_id" required>
+                        <option value="">Select Municipality...</option>
+                        <?php foreach ($municipalities as $m): ?>
+                            <option value="<?php echo $m['municipality_id']; ?>">
+                                <?php echo htmlspecialchars($m['municipality_name']); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

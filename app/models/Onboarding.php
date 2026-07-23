@@ -18,6 +18,15 @@ class Onboarding
         return $stmt->fetchAll();
     }
 
+    // Fetch municipalities for the employer onboarding location dropdown
+    public function getMunicipalities()
+    {
+        $sql = "SELECT municipality_id, municipality_name, province_name FROM lib_municipalities ORDER BY municipality_name ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public function createJobSeekerProfile($userId, $data)
     {
         try {
@@ -55,26 +64,32 @@ class Onboarding
         }
     }
 
-    public function createEmployerProfile($userId, $data, $businessPermitFilename)
+    public function createEmployerProfile($userId, $data, $permitFilename)
     {
         try {
             $this->db->beginTransaction();
 
             // 1. Insert the mandatory Employer data
             $sqlProfile = "INSERT INTO Employers 
-                (user_id, company_name, contact_person, company_email, company_phone, street_address, barangay_id, business_permit, verified_status) 
-                VALUES (:user_id, :company_name, :contact_person, :company_email, :company_phone, :street_address, :barangay_id, :business_permit, 'Pending')";
+                (user_id, company_name, contact_person, company_email, company_phone, street_address, municipality_id, postal_code, business_permit, industry, company_size, company_description, company_logo, verified_status) 
+                VALUES (:user_id, :company_name, :contact_person, :company_email, :company_phone, :street_address, :municipality_id, :postal_code, :business_permit, :industry, :company_size, :company_description, :company_logo, :verified_status)";
 
             $stmtProfile = $this->db->prepare($sqlProfile);
             $stmtProfile->execute([
-                ':user_id' => $userId,
-                ':company_name' => $data['company_name'],
-                ':contact_person' => $data['contact_person'],
-                ':company_email' => $data['company_email'],
-                ':company_phone' => $data['company_phone'],
-                ':street_address' => $data['street_address'],
-                ':barangay_id' => $data['barangay_id'],
-                ':business_permit' => $businessPermitFilename
+                ':user_id'             => $userId,
+                ':company_name'        => $data['company_name'],
+                ':contact_person'      => $data['contact_person'],
+                ':company_email'       => $data['company_email'],
+                ':company_phone'       => $data['company_phone'],
+                ':street_address'      => $data['street_address'],
+                ':municipality_id'     => $data['municipality_id'],
+                ':postal_code'         => $data['postal_code'],
+                ':business_permit'     => $permitFilename,
+                ':industry'            => $data['industry'] ?? null,
+                ':company_size'        => $data['company_size'] ?? null,
+                ':company_description' => $data['company_description'] ?? null,
+                ':company_logo'        => $data['company_logo'] ?? null,
+                ':verified_status'     => 'Pending'
             ]);
 
             // 2. Upgrade the User's account status to 'Active'
@@ -88,7 +103,7 @@ class Onboarding
         } catch (PDOException $e) {
             $this->db->rollBack();
             error_log("Employer Onboarding Transaction Failed: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 }

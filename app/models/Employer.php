@@ -19,6 +19,15 @@ class Employer
         return $result ? $result['employer_id'] : false;
     }
 
+    // Fetch the full employer row linked to a user_id (used for onboarding gate checks)
+    public function findByUserId($userId)
+    {
+        $sql = "SELECT * FROM employers WHERE user_id = :user_id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetch();
+    }
+
     // Fetch the employer's core profile row (includes verified_status)
     public function getEmployerDetails($employerId)
     {

@@ -53,4 +53,14 @@ class User
 
         return false;
     }
+
+    // Look up a single user row by email address
+    public function findUserByEmail($email)
+    {
+        $sql = "SELECT * FROM Users WHERE email = :email LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
 }

@@ -27,9 +27,9 @@ class OnboardingController extends Controller
             }
         } else {
             // GET Request: Load the appropriate UI
-            $barangays = $onboardingModel->getBarangays();
+            $municipalities = $onboardingModel->getMunicipalities();
             $viewName = ($role === 'employer') ? 'auth/onboarding_employer' : 'auth/onboarding';
-            $this->view($viewName, ['barangays' => $barangays]);
+            $this->view($viewName, ['municipalities' => $municipalities]);
         }
     }
 
@@ -56,31 +56,58 @@ class OnboardingController extends Controller
 
     private function handleEmployerSubmit($onboardingModel)
     {
+        // 1. Sanitize the Core Identity & Legal Payload (The NOT NULLs)
         $data = [
-            'company_name' => htmlspecialchars(trim($_POST['company_name'])),
-            'contact_person' => htmlspecialchars(trim($_POST['contact_person'])),
-            'company_email' => filter_var(trim($_POST['company_email']), FILTER_SANITIZE_EMAIL),
-            'company_phone' => htmlspecialchars(trim($_POST['company_phone'])),
-            'street_address' => htmlspecialchars(trim($_POST['street_address'])),
-            'barangay_id' => (int) $_POST['barangay_id']
+            'company_name'       => htmlspecialchars(trim($_POST['company_name'] ?? '')),
+            'contact_person'     => htmlspecialchars(trim($_POST['contact_person'] ?? '')),
+            'company_email'      => filter_var(trim($_POST['company_email'] ?? ''), FILTER_SANITIZE_EMAIL),
+            'company_phone'      => htmlspecialchars(trim($_POST['company_phone'] ?? '')),
+            'street_address'     => htmlspecialchars(trim($_POST['street_address'] ?? '')),
+            'municipality_id'    => !empty($_POST['municipality_id']) ? (int) $_POST['municipality_id'] : null,
+            'postal_code'        => htmlspecialchars(trim($_POST['postal_code'] ?? '')),
+
+            // Step 3 Optional Data
+            'industry'           => htmlspecialchars(trim($_POST['industry'] ?? '')),
+            'company_size'       => htmlspecialchars(trim($_POST['company_size'] ?? '')),
+            'company_description'=> htmlspecialchars(trim($_POST['company_description'] ?? ''))
         ];
 
         try {
-            // Point the destination to our secure storage vault
-            $destination = BASE_PATH . 'storage/documents/';
-            $secureFilename = FileUpload::secureUpload($_FILES['business_permit'], $destination);
+            // 2. Strict File Handling: Mandatory Business Permit
+            if (!isset($_FILES['business_permit']) || $_FILES['business_permit']['error'] !== UPLOAD_ERR_OK) {
+                header('Location: /sikaphub_v2/onboarding?error=permit_required');
+                exit();
+            }
+            $permitDestination = BASE_PATH . 'storage/documents/';
+            $permitFilename = FileUpload::secureUpload($_FILES['business_permit'], $permitDestination);
 
-            if ($onboardingModel->createEmployerProfile($_SESSION['user_id'], $data, $secureFilename)) {
-                $_SESSION['account_status'] = 'Active';
-                echo "<h3>Company Registered!</h3>";
-                echo "<p>Your account is Active, but your verification status is Pending PESO approval.</p>";
-                echo "<p>You may now <a href='/sikaphub_v2/post-job'>Post a Job</a>.</p>";
-            } else {
-                echo "Database Error saving employer profile.";
+            // 3. Strict File Handling: Optional Company Logo
+            $logoFilename = null;
+            if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] === UPLOAD_ERR_OK) {
+                $logoDestination = BASE_PATH . 'storage/uploads/logos/';
+                $logoFilename = FileUpload::secureUpload($_FILES['company_logo'], $logoDestination);
             }
 
+            $data['company_logo'] = $logoFilename;
+
+            // 4. Execute the Unified Insertion
+            $onboardingModel->createEmployerProfile($_SESSION['user_id'], $data, $permitFilename);
+
+            // Break the AuthGuard trap
+            $_SESSION['account_status'] = 'Active';
+
+            // Clean PRG (Post/Redirect/Get) redirect
+            header("Location: /sikaphub_v2/employer/dashboard?success=registered");
+            exit();
+
+        } catch (PDOException $e) {
+            error_log('[OnboardingController] PDOException in handleEmployerSubmit: ' . $e->getMessage());
+            header('Location: /sikaphub_v2/onboarding?error=db_error');
+            exit();
         } catch (RuntimeException $e) {
-            echo "<h3>Upload Error:</h3><p>" . $e->getMessage() . "</p>";
+            error_log('[OnboardingController] RuntimeException in handleEmployerSubmit: ' . $e->getMessage());
+            header('Location: /sikaphub_v2/onboarding?error=upload_error');
+            exit();
         }
     }
 }

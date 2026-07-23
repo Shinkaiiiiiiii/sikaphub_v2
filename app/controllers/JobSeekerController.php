@@ -23,11 +23,13 @@ class JobSeekerController extends Controller
         // V2 FIX: Fetch the actual JobSeeker PK, not the User PK
         $jobseekerId = $jobSeekerModel->getJobseekerIdByUserId($userId);
         if (!$jobseekerId) {
-            die("Critical Error: Job Seeker profile not found for this user.");
+            die("Critical Error: Job seeker profile missing. Please complete onboarding.");
         }
 
-        // 2. Fetch all open jobs from MySQL
-        $openJobs = $jobSeekerModel->getAllOpenJobs();
+        $homeMunicipalityId = $jobSeekerModel->getHomeMunicipalityId($jobseekerId);
+
+        // 2. Execute 3NF Targeted Feed Query
+        $openJobs = $jobSeekerModel->getAllOpenJobs($jobseekerId, $homeMunicipalityId);
         $scoredJobs = [];
 
         // 3. The N+1 AI Trigger Loop

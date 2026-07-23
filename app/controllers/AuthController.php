@@ -19,7 +19,19 @@ class AuthController extends Controller
             $userModel = $this->model('User');
 
             if ($userModel->register($username, $email, $password, $role)) {
-                // V2 Polish: Redirect to login with a success flag for the Toast UI
+                if ($role === 'employer') {
+                    // For new employer accounts, grab the freshly-created user and
+                    // seed the session so onboarding can access $_SESSION['user_id'].
+                    $newUser = $userModel->findUserByEmail($email);
+                    session_regenerate_id(true);
+                    $_SESSION['user_id']       = $newUser['user_id'];
+                    $_SESSION['username']      = $newUser['username'];
+                    $_SESSION['role']          = $newUser['role'];
+                    $_SESSION['account_status'] = $newUser['account_status'];
+                    header("Location: /sikaphub_v2/onboarding");
+                    exit();
+                }
+                // For all other roles, redirect to login with a success toast.
                 header("Location: /sikaphub_v2/login?success=registered");
                 exit();
             } else {
@@ -62,7 +74,16 @@ class AuthController extends Controller
                     header("Location: /sikaphub_v2/admin/dashboard");
                     exit();
                 } elseif ($_SESSION['role'] === 'employer') {
-                    header("Location: /sikaphub_v2/employer/dashboard");
+                    // Check whether an employer profile record already exists.
+                    $employerModel = $this->model('Employer');
+                    $employerRow   = $employerModel->findByUserId($_SESSION['user_id']);
+                    if (!$employerRow) {
+                        // No employer record → send to onboarding wizard.
+                        header("Location: /sikaphub_v2/onboarding");
+                    } else {
+                        // Employer profile complete → go straight to dashboard.
+                        header("Location: /sikaphub_v2/employer/dashboard");
+                    }
                     exit();
                 } elseif ($_SESSION['role'] === 'jobseeker') {
                     header("Location: /sikaphub_v2/dashboard");
