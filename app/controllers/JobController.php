@@ -105,4 +105,28 @@ class JobController extends Controller
             $this->view('employer/post_job', $data);
         }
     }
+
+    public function show()
+    {
+        AuthGuard::requireActiveProfile();
+
+        $jobId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if ($jobId === 0) {
+            header("Location: /sikaphub_v2/dashboard?error=invalid_job");
+            exit();
+        }
+
+        $jobModel = $this->model('Job');
+
+        // Strict IDOR Defense: Only fetch if status is 'Open'
+        $job = $jobModel->getOpenJobDetails($jobId);
+
+        if (!$job) {
+            header("Location: /sikaphub_v2/dashboard?error=job_unavailable");
+            exit();
+        }
+
+        $this->view('job/show', ['job' => $job]);
+    }
 }

@@ -781,7 +781,7 @@
                                     <td style="color: var(--text-muted); width: 36px; font-size: 0.75rem;">
                                         <?php echo $i + 1; ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($geo['barangay_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($geo['municipality_name']); ?></td>
                                     <td>
                                         <div class="bar-cell">
                                             <div class="bar-track">

@@ -26,10 +26,8 @@ class JobSeekerController extends Controller
             die("Critical Error: Job seeker profile missing. Please complete onboarding.");
         }
 
-        $homeMunicipalityId = $jobSeekerModel->getHomeMunicipalityId($jobseekerId);
-
-        // 2. Execute 3NF Targeted Feed Query
-        $openJobs = $jobSeekerModel->getAllOpenJobs($jobseekerId, $homeMunicipalityId);
+        // 2. Fetch all open jobs — location relevance delegated to AI engine
+        $openJobs = $jobSeekerModel->getAllOpenJobs();
         $scoredJobs = [];
 
         // 3. The N+1 AI Trigger Loop
@@ -82,6 +80,11 @@ class JobSeekerController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: /sikaphub_v2/dashboard");
             exit();
+        }
+
+        // 2a. Strict CSRF Token Verification
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            die("Security Violation: Invalid CSRF token.");
         }
 
         $jobId = isset($_POST['job_id']) ? (int) $_POST['job_id'] : 0;

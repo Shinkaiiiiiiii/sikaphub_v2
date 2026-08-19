@@ -3,380 +3,249 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Employer ATS - S.I.K.A.P. Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employer ATS Dashboard – S.I.K.A.P. Hub</title>
+    <meta name="description" content="Manage your job postings and review AI-ranked candidates on the S.I.K.A.P. Hub Employer ATS Dashboard.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: sans-serif;
-            background: #f4f7f6;
-            margin: 0;
-            padding: 0;
-            /* Removed padding to allow full-width navbar */
-        }
+        body { font-family: 'Inter', sans-serif; }
 
-        /* --- GLOBAL NAVIGATION BAR --- */
-        .global-nav {
-            background: #ffffff;
-            padding: 15px 30px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .global-nav .brand {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #0056b3;
-        }
-
-        .global-nav .nav-links a {
-            margin-left: 20px;
-            text-decoration: none;
-            color: #2c3e50;
-            font-weight: bold;
-        }
-
-        .global-nav .nav-links a:hover {
-            color: #0056b3;
-        }
-
-        .container {
-            padding: 0 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .btn-post {
-            background: #28a745;
-            color: white;
-            padding: 10px 15px;
-            text-decoration: none;
-            border-radius: 3px;
-            font-weight: bold;
-        }
-
-        .job-card {
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .job-header {
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-
-        .job-header h3 {
-            margin: 0;
-            color: #2c3e50;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 0.8em;
-            font-weight: bold;
-            background: #e8f4f8;
-            color: #0056b3;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th,
-        td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background: #ecf0f1;
-        }
-
-        .score-high {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .score-med {
-            color: #f39c12;
-            font-weight: bold;
-        }
-
-        .score-low {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-
-        .empty-state {
-            color: #7f8c8d;
-            font-style: italic;
-        }
-
-        /* --- GLOBAL TOAST NOTIFICATION CSS --- */
-        #toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-        }
-
+        /* ── Toast animations ── */
+        #toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.625rem; }
         .toast {
-            background: #333;
-            color: #fff;
-            padding: 15px 20px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            opacity: 0;
-            transform: translateX(100%);
-            animation: slideIn 0.3s forwards, fadeOut 0.3s forwards 4.7s;
+            display: flex; align-items: center; gap: 0.625rem;
+            padding: 0.875rem 1.25rem; border-radius: 0.5rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,.15);
+            color: #fff; font-weight: 600; font-size: 0.875rem;
+            opacity: 0; transform: translateX(120%);
+            animation: slideIn 0.35s cubic-bezier(.22,1,.36,1) forwards,
+                       fadeOut 0.35s ease forwards 4.65s;
         }
+        .toast.success { background: #1e293b; border-left: 5px solid #10b981; }
+        .toast.error   { background: #1e293b; border-left: 5px solid #f43f5e; }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateX(120%); } }
 
-        .toast.success {
-            border-left: 5px solid #28a745;
-        }
-
-        .toast.error {
-            border-left: 5px solid #e74c3c;
-        }
-
-        .toast span {
-            margin-left: 10px;
-            font-weight: bold;
-        }
-
-        @keyframes slideIn {
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeOut {
-            to {
-                opacity: 0;
-            }
-        }
-        /* --- VERIFICATION STATUS BANNER --- */
-        .verification-banner {
-            background: #fef3e2;
-            color: #e67e22;
-            border: 1px solid #e67e22;
-            border-left: 5px solid #e67e22;
-            border-radius: 4px;
-            padding: 14px 20px;
-            margin: 0 0 20px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            font-size: 0.95em;
-        }
-
-        .verification-banner .banner-icon {
-            font-size: 1.3em;
-            flex-shrink: 0;
-        }
-
-        /* Disabled Post Job button state */
-        .btn-post-disabled {
-            background: #b0bec5;
-            color: #ffffff;
-            padding: 10px 15px;
-            border-radius: 3px;
-            font-weight: bold;
-            cursor: not-allowed;
-            display: inline-block;
-            position: relative;
-        }
-
-        .btn-post-disabled::after {
-            content: "Account pending verification";
-            visibility: hidden;
-            opacity: 0;
-            background: #2c3e50;
-            color: #fff;
-            text-align: center;
-            border-radius: 4px;
-            padding: 5px 10px;
-            position: absolute;
-            z-index: 1;
-            bottom: 120%;
-            right: 0;
-            white-space: nowrap;
-            font-size: 0.8em;
-            font-weight: normal;
-            transition: opacity 0.2s;
-        }
-
-        .btn-post-disabled:hover::after {
-            visibility: visible;
-            opacity: 1;
-        }
+        /* ── Subtle card hover lift ── */
+        .job-card { transition: box-shadow 0.2s ease, transform 0.2s ease; }
+        .job-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,.10); }
     </style>
 </head>
 
-<body>
+<body class="bg-slate-50 min-h-screen">
 
-    <nav class="global-nav">
-        <div class="brand">S.I.K.A.P. Hub</div>
-        <div class="nav-links">
-            <a href="/sikaphub_v2/employer/dashboard">Dashboard</a>
-            <a href="/sikaphub_v2/build-profile">Company Profile</a>
-            <a href="/sikaphub_v2/logout" style="color: var(--danger);">Logout</a>
+    <!-- ═══════════════════════════════════════════════════ NAVBAR -->
+    <nav class="bg-white border-b border-slate-100 shadow-sm sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+            <a href="/sikaphub_v2/employer/dashboard" class="flex items-center gap-2">
+                <span class="text-indigo-600 font-extrabold text-xl tracking-tight">S.I.K.A.P.</span>
+                <span class="text-slate-500 font-medium text-sm">Hub</span>
+            </a>
+            <div class="flex items-center gap-6">
+                <a href="/sikaphub_v2/employer/dashboard"
+                   class="text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 pb-0.5">
+                   Dashboard
+                </a>
+                <a href="/sikaphub_v2/build-profile"
+                   class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">
+                   Company Profile
+                </a>
+                <a href="/sikaphub_v2/logout"
+                   class="text-sm font-medium text-rose-500 hover:text-rose-700 transition-colors">
+                   Logout
+                </a>
+            </div>
         </div>
     </nav>
 
+    <!-- ═══════════════════════════════════════════════════ TOAST CONTAINER -->
     <div id="toast-container"></div>
 
-    <?php if (($verified_status ?? 'Pending') !== 'Verified'): ?>
-    <div class="container">
-        <div class="verification-banner" role="alert">
-            <span class="banner-icon">⚠️</span>
-            <span>
-                <strong>Account Under Review:</strong> Your business permit is currently pending verification by PESO.
-                You cannot post jobs until approved.
-            </span>
-        </div>
-    </div>
-    <?php endif; ?>
+    <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-    <div class="container">
-        <div class="header">
-            <div>
-                <h2>Employer ATS Dashboard</h2>
-                <p>Manage your job postings and review AI-ranked candidates.</p>
+        <!-- ═══════════════════════════════════════════════ VERIFICATION BANNER -->
+        <?php if (($verified_status ?? 'Pending') !== 'Verified'): ?>
+        <div role="alert"
+             class="bg-amber-50 border-l-4 border-amber-500 text-amber-700 p-4 rounded-r-xl flex items-start gap-3 shadow-sm">
+            <span class="text-xl mt-0.5 flex-shrink-0">⚠️</span>
+            <div class="text-sm leading-relaxed">
+                <p class="font-bold text-amber-800 mb-0.5">Account Under Review</p>
+                <p>Your business permit is currently pending verification by PESO.
+                   You cannot post jobs until your account is approved.</p>
             </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ═══════════════════════════════════════════════ ATS HEADER CARD -->
+        <div class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+            <div class="text-white">
+                <h1 class="text-2xl font-extrabold tracking-tight mb-1">Employer ATS Dashboard</h1>
+                <p class="text-indigo-200 text-sm">Manage your job postings and review AI-ranked candidates.</p>
+            </div>
+
             <?php if (($verified_status ?? 'Pending') === 'Verified'): ?>
-                <a href="/sikaphub_v2/post-job" class="btn-post">+ Post New Job</a>
+                <a href="/sikaphub_v2/post-job"
+                   id="btn-post-job"
+                   class="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold text-sm px-5 py-2.5 rounded-xl shadow hover:bg-indigo-50 active:scale-95 transition-all whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Post New Job
+                </a>
             <?php else: ?>
-                <span class="btn-post-disabled">+ Post New Job</span>
+                <span id="btn-post-job"
+                      title="Account pending verification"
+                      class="inline-flex items-center gap-2 bg-slate-300 text-slate-500 font-bold text-sm px-5 py-2.5 rounded-xl cursor-not-allowed pointer-events-none whitespace-nowrap select-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Post New Job
+                </span>
             <?php endif; ?>
         </div>
 
-        <div class="feed">
+        <!-- ═══════════════════════════════════════════════ JOB CARDS FEED -->
+        <section class="space-y-5">
+
             <?php if (empty($jobs)): ?>
-                <div class="job-card">
-                    <p class="empty-state">You have not posted any jobs yet.</p>
+                <!-- Empty State -->
+                <div class="job-card bg-white border border-dashed border-slate-200 rounded-2xl p-12 flex flex-col items-center justify-center text-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 text-2xl">📋</div>
+                    <p class="font-semibold text-slate-600">No Job Postings Yet</p>
+                    <p class="text-sm text-slate-400">Post your first opportunity to start receiving AI-ranked applications.</p>
                 </div>
+
             <?php else: ?>
                 <?php foreach ($jobs as $job): ?>
-                    <div class="job-card">
-                        <div class="job-header">
-                            <h3>
+                <div class="job-card bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+
+                    <!-- Job Card Header -->
+                    <div class="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h2 class="text-base font-bold text-slate-800">
                                 <?php echo htmlspecialchars($job['job_title']); ?>
-                            </h3>
-                            <span class="status-badge">
+                            </h2>
+                            <?php
+                                $statusColor = match(strtolower($job['job_status'] ?? '')) {
+                                    'open'   => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+                                    'closed' => 'bg-rose-50 text-rose-600 ring-1 ring-rose-200',
+                                    default  => 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+                                };
+                            ?>
+                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full <?php echo $statusColor; ?>">
                                 <?php echo htmlspecialchars($job['job_status']); ?>
                             </span>
-                            <small style="color: #7f8c8d; margin-left: 10px;">Posted:
-                                <?php echo date('M d, Y', strtotime($job['date_posted'])); ?>
-                            </small>
                         </div>
+                        <p class="text-xs text-slate-400 font-medium shrink-0">
+                            Posted: <?php echo date('M d, Y', strtotime($job['date_posted'])); ?>
+                        </p>
+                    </div>
 
+                    <!-- Applicants Section -->
+                    <div class="px-6 py-5">
                         <?php if (empty($job['applicants'])): ?>
-                            <p class="empty-state">No applications received yet.</p>
+                            <p class="text-sm text-slate-400 italic py-4 text-center">No applications received yet.</p>
                         <?php else: ?>
-                            <table>
-                                <tr>
-                                    <th>Candidate Name</th>
-                                    <th>Contact</th>
-                                    <th>AI Match Score</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                                <?php foreach ($job['applicants'] as $applicant): ?>
-                                    <?php
-                                    // Determine color coding based on score thresholds
-                                    $scoreClass = 'score-low';
-                                    if ($applicant['match_percentage'] >= 75)
-                                        $scoreClass = 'score-high';
-                                    elseif ($applicant['match_percentage'] >= 40)
-                                        $scoreClass = 'score-med';
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <?php echo htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?>
-                                        </td>
-                                        <td>
-                                            <?php echo htmlspecialchars($applicant['contact_number']); ?>
-                                        </td>
-                                        <td class="<?php echo $scoreClass; ?>">
-                                            <?php echo $applicant['match_percentage']; ?>%
-                                        </td>
-                                        <td>
-                                            <?php echo htmlspecialchars($applicant['application_status']); ?>
-                                        </td>
-                                        <td>
-                                            <a href="/sikaphub_v2/employer/review-candidate?app_id=<?php echo $applicant['application_id']; ?>"
-                                                style="background: #0056b3; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em;">Review
-                                                Profile</a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </table>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr class="text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                                            <th class="pb-3 pr-4">Candidate</th>
+                                            <th class="pb-3 pr-4">Contact</th>
+                                            <th class="pb-3 pr-4">AI Match</th>
+                                            <th class="pb-3 pr-4">Status</th>
+                                            <th class="pb-3">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <?php foreach ($job['applicants'] as $applicant): ?>
+                                            <?php
+                                                // ── Score colour-coding ──────────────────────────────
+                                                $pct = $applicant['match_percentage'];
+                                                if ($pct >= 75) {
+                                                    $scoreClass = 'text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded';
+                                                } elseif ($pct >= 40) {
+                                                    $scoreClass = 'text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded';
+                                                } else {
+                                                    $scoreClass = 'text-rose-600 font-bold bg-rose-50 px-2 py-1 rounded';
+                                                }
+
+                                                // ── Application-status pill ──────────────────────────
+                                                $appStatusColor = match(strtolower($applicant['application_status'] ?? '')) {
+                                                    'accepted' => 'bg-emerald-50 text-emerald-700',
+                                                    'rejected' => 'bg-rose-50 text-rose-600',
+                                                    'reviewed' => 'bg-blue-50 text-blue-600',
+                                                    default    => 'bg-slate-100 text-slate-500',
+                                                };
+                                            ?>
+                                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                                <td class="py-3.5 pr-4 font-medium text-slate-800">
+                                                    <?php echo htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?>
+                                                </td>
+                                                <td class="py-3.5 pr-4 text-slate-500">
+                                                    <?php echo htmlspecialchars($applicant['contact_number'] ?? 'Not provided'); ?>
+                                                </td>
+                                                <td class="py-3.5 pr-4">
+                                                    <span class="<?php echo $scoreClass; ?> text-xs">
+                                                        <?php echo $pct; ?>%
+                                                    </span>
+                                                </td>
+                                                <td class="py-3.5 pr-4">
+                                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full <?php echo $appStatusColor; ?>">
+                                                        <?php echo htmlspecialchars($applicant['application_status']); ?>
+                                                    </span>
+                                                </td>
+                                                <td class="py-3.5">
+                                                    <a href="/sikaphub_v2/employer/review-candidate?app_id=<?php echo (int) $applicant['application_id']; ?>"
+                                                       class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-all shadow-sm">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                        </svg>
+                                                        Review Profile
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
                         <?php endif; ?>
                     </div>
+                </div>
                 <?php endforeach; ?>
             <?php endif; ?>
-        </div>
-    </div>
 
+        </section>
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════ TOAST SCRIPT -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             let message = '';
-            let type = 'success'; // default to success
+            let type    = 'success';
 
-            // Check URL parameters for flags sent by the Controller
             if (urlParams.has('job_posted')) {
-                message = "Job Opportunity successfully posted!";
+                message = "✅  Job Opportunity successfully posted!";
             } else if (urlParams.has('profile_updated')) {
-                message = "Company Profile updated successfully!";
+                message = "✅  Company Profile updated successfully!";
             } else if (urlParams.has('error')) {
-                type = 'error';
-                message = "An error occurred: " + urlParams.get('error').replace(/_/g, ' ');
+                type    = 'error';
+                message = "⚠️  An error occurred: " + urlParams.get('error').replace(/_/g, ' ');
             }
 
-            // If a message exists, build and display the Toast
             if (message !== '') {
                 const container = document.getElementById('toast-container');
-                const toastHTML = `
-                    <div class="toast ${type}">
-                        <span>${type === 'success' ? '✅' : '⚠️'}</span>
-                        <span>${message}</span>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', toastHTML);
-
-                // Clean up the URL so the toast doesn't reappear on manual page refresh
+                const div       = document.createElement('div');
+                div.className   = `toast ${type}`;
+                div.textContent = message;
+                container.appendChild(div);
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
     </script>
-</body>
 
+</body>
 </html>

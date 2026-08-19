@@ -14,10 +14,10 @@ class AdminController extends Controller
         $adminModel = $this->model('Admin');
         $data = [
             'overview' => $adminModel->getSystemOverview(),
-            'geography' => $adminModel->getSeekersByBarangay(),
+            'geography' => $adminModel->getSeekersByMunicipality(),
             'top_skills' => $adminModel->getTopDemandSkills(),
             'pending_employers' => $adminModel->getPendingEmployers(),
-            'pending_skills' => $adminModel->getPendingSkills(), // NEW: Custom skills queue
+            'pending_skills' => $adminModel->getPendingSkills(),
             'success' => isset($_GET['success']) ? true : false
         ];
         $this->view('admin/dashboard', $data);

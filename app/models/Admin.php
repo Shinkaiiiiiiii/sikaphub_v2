@@ -17,24 +17,27 @@ class Admin
         return $stmt->fetchAll();
     }
 
-    public function getSeekersByBarangay()
+    // 🚨 SURGICAL PATCH: 3NF Location Upgrade
+    public function getSeekersByMunicipality()
     {
-        $sql = "SELECT b.barangay_name, COUNT(js.jobseeker_id) as seeker_count
+        // Strictly lowercase table names for Linux case-sensitivity constraints
+        $sql = "SELECT m.municipality_name, COUNT(js.jobseeker_id) as seeker_count
                 FROM job_seekers js
-                JOIN barangays b ON js.barangay_id = b.barangay_id
-                GROUP BY js.barangay_id
+                JOIN lib_municipalities m ON js.home_municipality_id = m.municipality_id
+                GROUP BY js.home_municipality_id, m.municipality_name
                 ORDER BY seeker_count DESC LIMIT 10";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll();
     }
 
+    // 🚨 SURGICAL PATCH: Added ms.skill_name to GROUP BY for STRICT_MODE compliance
     public function getTopDemandSkills()
     {
         $sql = "SELECT ms.skill_name, COUNT(jrs.skill_id) as demand_count
                 FROM job_required_skills jrs
                 JOIN master_skills ms ON jrs.skill_id = ms.skill_id
-                GROUP BY jrs.skill_id
+                GROUP BY jrs.skill_id, ms.skill_name
                 ORDER BY demand_count DESC LIMIT 5";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -49,7 +52,6 @@ class Admin
         return $stmt->fetchAll();
     }
 
-    // NEW: Fetch Custom Skills entered by users that need approval
     public function getPendingSkills()
     {
         $sql = "SELECT * FROM master_skills WHERE status = 'pending' ORDER BY skill_name ASC";

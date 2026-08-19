@@ -84,12 +84,12 @@ class Employer
                     a.application_id, a.jobseeker_id, a.ai_match_score, a.application_status, a.application_date,
                     js.first_name, js.last_name, js.gender, js.contact_number, js.street_address,
                     js.profile_photo, js.resume_file,
-                    b.barangay_name,
+                    m.municipality_name,
                     jp.job_title
                 FROM applications a
                 JOIN job_postings jp ON a.job_id = jp.job_id
                 JOIN job_seekers js ON a.jobseeker_id = js.jobseeker_id
-                JOIN barangays b ON js.barangay_id = b.barangay_id
+                LEFT JOIN lib_municipalities m ON js.home_municipality_id = m.municipality_id
                 WHERE a.application_id = :app_id AND jp.employer_id = :employer_id
                 LIMIT 1";
 
@@ -98,7 +98,7 @@ class Employer
             ':app_id' => $applicationId,
             ':employer_id' => $employerId
         ]);
-        return $stmt->fetch();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     // Fetch 1:N Education History

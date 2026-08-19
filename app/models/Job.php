@@ -99,4 +99,16 @@ class Job
             return false;
         }
     }
+
+    public function getOpenJobDetails($jobId)
+    {
+        $sql = "SELECT jp.*, e.company_name, e.company_logo, e.company_description, m.municipality_name, m.province_name
+                FROM job_postings jp
+                JOIN employers e ON jp.employer_id = e.employer_id
+                JOIN lib_municipalities m ON jp.municipality_id = m.municipality_id
+                WHERE jp.job_id = :job_id AND jp.job_status = 'Open' LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':job_id' => $jobId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }

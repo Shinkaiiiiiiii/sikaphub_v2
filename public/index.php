@@ -81,6 +81,7 @@ $router->get('/my-applications', ['JobSeekerController', 'tracker']);
 $router->post('/apply', ['JobSeekerController', 'apply']);
 
 // Job Routes
+$router->get('/job/view', ['JobController', 'show']);
 $router->get('/post-job', ['JobController', 'create']);
 $router->post('/post-job', ['JobController', 'create']);
 

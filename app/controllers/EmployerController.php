@@ -58,7 +58,6 @@ class EmployerController extends Controller
 
     public function reviewCandidate()
     {
-        // 1. Strict Security Guardrails
         AuthGuard::requireActiveProfile();
 
         if ($_SESSION['role'] !== 'employer') {
@@ -69,54 +68,63 @@ class EmployerController extends Controller
         $employerModel = $this->model('Employer');
         $employerId = $employerModel->getEmployerId($_SESSION['user_id']);
 
-        // 2. Capture and sanitize the URL parameter
-        $appId = isset($_GET['app_id']) ? (int) $_GET['app_id'] : 0;
+        // 1. Capture ID from either GET or POST
+        $appId = (int) ($_GET['app_id'] ?? $_POST['app_id'] ?? 0);
 
         if ($appId === 0) {
             header("Location: /sikaphub_v2/employer/dashboard?error=invalid_application");
             exit();
         }
 
+        // 2. IDOR Firewall: Fetch application FIRST to verify ownership
+        $application = $employerModel->getApplicationDetails($appId, $employerId);
+        if (!$application) {
+            header("Location: /sikaphub_v2/employer/dashboard?error=access_denied_or_not_found");
+            exit();
+        }
+
         // 3. Handle Status Update (POST Request)
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+                die("Security Violation: Invalid CSRF token.");
+            }
+
             $newStatus = $_POST['status'] ?? '';
-            // Enforce ENUM constraints manually to prevent dirty data injection
+            $currentStatus = $application['application_status'];
             $allowedStatuses = ['Pending', 'Reviewed', 'Accepted', 'Rejected'];
 
-            if (in_array($newStatus, $allowedStatuses)) {
-                if ($employerModel->updateApplicationStatus($appId, $employerId, $newStatus)) {
-                    // Sleek redirect back to the review page with a Toast flag
-                    header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&status_updated=1");
-                    exit();
-                } else {
-                    header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&error=database_error");
-                    exit();
-                }
-            } else {
+            if (!in_array($newStatus, $allowedStatuses, true)) {
                 header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&error=invalid_status");
+                exit();
+            }
+
+            // State Machine Guard: Prevent redundant updates
+            if ($newStatus === $currentStatus) {
+                header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&status_updated=1");
+                exit();
+            }
+
+            // State Machine Guard: Prevent reverting backwards to Pending
+            if ($newStatus === 'Pending' && $currentStatus !== 'Pending') {
+                header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&error=invalid_transition");
+                exit();
+            }
+
+            if ($employerModel->updateApplicationStatus($appId, $employerId, $newStatus)) {
+                header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&status_updated=1");
+                exit();
+            } else {
+                header("Location: /sikaphub_v2/employer/review-candidate?app_id=" . $appId . "&error=database_error");
                 exit();
             }
         }
 
         // 4. Handle View Rendering (GET Request)
-        // This query acts as our IDOR Firewall. If it returns false, the employer is blocked.
-        $application = $employerModel->getApplicationDetails($appId, $employerId);
-
-        if (!$application) {
-            // Log this event in the future. It could be an attacker probing URLs.
-            header("Location: /sikaphub_v2/employer/dashboard?error=access_denied_or_not_found");
-            exit();
-        }
-
-        // Fetch historical arrays
         $jobseekerId = $application['jobseeker_id'];
-        $education = $employerModel->getSeekerEducation($jobseekerId);
-        $experience = $employerModel->getSeekerExperience($jobseekerId);
-
         $data = [
-            'app' => $application,
-            'education' => $education,
-            'experience' => $experience
+            'app'        => $application,
+            'education'  => $employerModel->getSeekerEducation($jobseekerId),
+            'experience' => $employerModel->getSeekerExperience($jobseekerId)
         ];
 
         $this->view('employer/review_candidate', $data);

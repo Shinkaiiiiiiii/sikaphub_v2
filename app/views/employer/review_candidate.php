@@ -348,9 +348,8 @@
                 <div class="profile-info">
                     <h2><?php echo htmlspecialchars($app['first_name'] . ' ' . $app['last_name']); ?></h2>
                     <p>Applying for: <strong><?php echo htmlspecialchars($app['job_title']); ?></strong></p>
-                    <p>Contact: <?php echo htmlspecialchars($app['contact_number']); ?></p>
-                    <p>Location: <?php echo htmlspecialchars($app['street_address'] . ', ' . $app['barangay_name']); ?>
-                    </p>
+                    <p>Contact: <?php echo htmlspecialchars($app['contact_number'] ?? 'Not provided'); ?></p>
+                    <p>Location: <?php echo htmlspecialchars($app['street_address'] . ', ' . $app['municipality_name']); ?></p>
                 </div>
             </div>
 
@@ -370,6 +369,7 @@
 
             <form method="POST" action="" class="action-form">
                 <?php echo CSRF::csrfField(); ?>
+                <input type="hidden" name="app_id" value="<?php echo htmlspecialchars($app['application_id'] ?? 0); ?>">
                 <select name="status">
                     <option value="Pending" <?php if ($app['application_status'] == 'Pending')
                         echo 'selected'; ?>>Pending
@@ -422,7 +422,7 @@
         <?php else: ?>
             <?php foreach ($education as $edu): ?>
                 <div class="history-block">
-                    <h4><?php echo htmlspecialchars($edu['degree_level']); ?></h4>
+                    <h4><?php echo htmlspecialchars(html_entity_decode($edu['degree_level'] ?? '', ENT_QUOTES, 'UTF-8')); ?></h4>
                     <div class="dates">Class of <?php echo htmlspecialchars($edu['year_graduated']); ?></div>
                     <p><?php echo htmlspecialchars($edu['school_name']); ?></p>
                 </div>
